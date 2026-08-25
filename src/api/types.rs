@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Deserializer};
 
-use crate::model::{Delivery, DeliveryEvent, DeliveryStatus};
+use crate::{
+    i18n::tr,
+    model::{Delivery, DeliveryEvent, DeliveryStatus},
+};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct DeliveriesResponse {
@@ -57,7 +60,7 @@ impl ApiDelivery {
             .events
             .first()
             .map(|event| event.date.clone())
-            .unwrap_or_else(|| "Noch keine Aktualisierung".into());
+            .unwrap_or_else(|| tr("Noch keine Aktualisierung"));
 
         Some(Delivery {
             carrier_code: self.carrier_code,

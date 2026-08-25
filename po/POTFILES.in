@@ -1,0 +1,10 @@
+src/app.rs
+src/api/client.rs
+src/api/types.rs
+src/i18n.rs
+src/model.rs
+src/notifications.rs
+src/rate_limit.rs
+src/secrets.rs
+src/storage.rs
+src/ui/mod.rs

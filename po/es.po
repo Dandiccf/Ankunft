@@ -1,0 +1,716 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Ankunft 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/dandiccf/ankunft/issues\n"
+"POT-Creation-Date: 2026-08-25 00:00+0200\n"
+"PO-Revision-Date: 2026-08-25 00:00+0200\n"
+"Last-Translator: Ankunft Contributors <noreply@example.invalid>\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Ankunft catalog generator\n"
+
+#: src/ui/mod.rs src/app.rs
+msgid "Ankunft"
+msgstr "Ankunft"
+
+#: src/ui/mod.rs
+msgid "Deine Lieferungen auf einen Blick"
+msgstr "Tus entregas de un vistazo"
+
+#: src/ui/mod.rs
+msgid "Sendungen durchsuchen"
+msgstr "Buscar envíos"
+
+#: src/ui/mod.rs
+msgid "Sendungen aktualisieren"
+msgstr "Actualizar envíos"
+
+#: src/ui/mod.rs
+msgid "Parcel-Verbindung verwalten"
+msgstr "Gestionar la conexión con Parcel"
+
+#: src/ui/mod.rs
+msgid "API-Schlüssel ändern"
+msgstr "Cambiar clave de API"
+
+#: src/ui/mod.rs
+msgid "Verbindung entfernen"
+msgstr "Eliminar conexión"
+
+#: src/ui/mod.rs
+msgid "Neue Sendung"
+msgstr "Nuevo envío"
+
+#: src/ui/mod.rs
+msgid "Aktive Sendungen"
+msgstr "Envíos activos"
+
+#: src/ui/mod.rs
+msgid "Kürzlich"
+msgstr "Recientes"
+
+#: src/ui/mod.rs
+msgid "Noch offen"
+msgstr "Pendiente"
+
+#: src/ui/mod.rs
+msgid "Noch keine Ereignisse"
+msgstr "Aún no hay eventos"
+
+#: src/ui/mod.rs
+msgid "Parcel hat für diese Sendung noch keine Details bereitgestellt."
+msgstr "Parcel aún no ha proporcionado detalles para este envío."
+
+#: src/ui/mod.rs
+msgid "Prototypmodus · Sichere Beispieldaten"
+msgstr "Modo prototipo · Datos de ejemplo seguros"
+
+#: src/ui/mod.rs
+msgid "API verbinden"
+msgstr "Conectar API"
+
+#: src/ui/mod.rs
+msgid "Keine Sendungen vorhanden"
+msgstr "No hay envíos"
+
+#: src/ui/mod.rs
+msgid "In deinem Parcel-Konto sind derzeit keine Sendungen gespeichert."
+msgstr "Actualmente no hay envíos guardados en tu cuenta de Parcel."
+
+#: src/ui/mod.rs
+msgid "Keine passenden Sendungen"
+msgstr "No hay envíos coincidentes"
+
+#: src/ui/mod.rs
+msgid "Für diesen Bereich gibt es momentan keine Sendungen."
+msgstr "Actualmente no hay envíos en esta sección."
+
+#: src/ui/mod.rs
+msgid "Keine Suchtreffer"
+msgstr "Sin resultados"
+
+#: src/ui/mod.rs
+msgid "Versuche es mit einer anderen Beschreibung, Paketnummer oder einem Paketdienst."
+msgstr "Prueba con otra descripción, número de seguimiento o transportista."
+
+#: src/ui/mod.rs
+msgid "Das Hinzufügen wird mit der sicheren API-Einrichtung aktiviert"
+msgstr "La adición de envíos se activará tras configurar la API de forma segura"
+
+#: src/ui/mod.rs
+msgid "Der Offline-Speicher ist nicht verfügbar: {warning}"
+msgstr "El almacenamiento sin conexión no está disponible: {warning}"
+
+#: src/ui/mod.rs
+msgid "GNOME-Schlüsselbund wird geprüft …"
+msgstr "Comprobando el llavero de GNOME…"
+
+#: src/ui/mod.rs
+msgid "Parcel API-Schlüssel"
+msgstr "Clave de API de Parcel"
+
+#: src/ui/mod.rs
+msgid "API-Schlüssel in Parcel Web erzeugen"
+msgstr "Crear una clave de API en Parcel Web"
+
+#: src/ui/mod.rs
+msgid "Mit Parcel verbinden"
+msgstr "Conectar con Parcel"
+
+#: src/ui/mod.rs
+msgid "Dein persönlicher Premium-API-Schlüssel wird ausschließlich im geschützten GNOME-Schlüsselbund gespeichert."
+msgstr "Tu clave de API Premium personal se guarda únicamente en el llavero protegido de GNOME."
+
+#: src/ui/mod.rs
+msgid "Abbrechen"
+msgstr "Cancelar"
+
+#: src/ui/mod.rs
+msgid "Verbinden"
+msgstr "Conectar"
+
+#: src/ui/mod.rs
+msgid "Live-Sendungen werden geladen …"
+msgstr "Cargando envíos en directo…"
+
+#: src/ui/mod.rs
+msgid "Live-Daten geladen, aber nicht offline gespeichert: {error}"
+msgstr "Se cargaron los datos en directo, pero no se guardaron sin conexión: {error}"
+
+#: src/ui/mod.rs
+msgid "Live-Sendungen wurden aktualisiert"
+msgstr "Los envíos en directo se actualizaron"
+
+#: src/ui/mod.rs
+msgid "Live-Daten geladen · Schlüssel nicht gespeichert"
+msgstr "Datos en directo cargados · Clave no guardada"
+
+#: src/ui/mod.rs
+msgid "Erneut verbinden"
+msgstr "Volver a conectar"
+
+#: src/ui/mod.rs
+msgid "Parcel konnte nicht aktualisiert werden"
+msgstr "No se pudo actualizar Parcel"
+
+#: src/ui/mod.rs
+msgid "Verbindung prüfen"
+msgstr "Comprobar conexión"
+
+#: src/ui/mod.rs
+msgid "Synchronisierung fehlgeschlagen: {error}"
+msgstr "Error de sincronización: {error}"
+
+#: src/ui/mod.rs
+msgid "Die Synchronisierung wurde unerwartet beendet"
+msgstr "La sincronización terminó inesperadamente"
+
+#: src/ui/mod.rs
+msgid "Erneut versuchen"
+msgstr "Reintentar"
+
+#: src/ui/mod.rs
+msgid "Die Live-Daten konnten nicht geladen werden"
+msgstr "No se pudieron cargar los datos en directo"
+
+#: src/ui/mod.rs
+msgid "Parcel-Verbindung entfernen?"
+msgstr "¿Eliminar la conexión con Parcel?"
+
+#: src/ui/mod.rs
+msgid "Der API-Schlüssel wird aus dem GNOME-Schlüsselbund gelöscht. Du kannst dich jederzeit wieder verbinden."
+msgstr "La clave de API se eliminará del llavero de GNOME. Puedes volver a conectarte en cualquier momento."
+
+#: src/ui/mod.rs
+msgid "Entfernen"
+msgstr "Eliminar"
+
+#: src/ui/mod.rs
+msgid "Der Offline-Speicher antwortet nicht."
+msgstr "El almacenamiento sin conexión no responde."
+
+#: src/ui/mod.rs
+msgid "Der Offline-Speicher war beim Start nicht verfügbar; lokale Sendungsdaten konnten nicht entfernt werden."
+msgstr "El almacenamiento sin conexión no estaba disponible al iniciar; no se pudieron eliminar los datos locales de envíos."
+
+#: src/ui/mod.rs
+msgid "Parcel-Verbindung wurde entfernt"
+msgstr "Se eliminó la conexión con Parcel"
+
+#: src/ui/mod.rs
+msgid "Offline-Daten nicht entfernt: {warning}"
+msgstr "No se eliminaron los datos sin conexión: {warning}"
+
+#: src/ui/mod.rs
+msgid "Offline · Zuletzt gespeicherte Sendungen"
+msgstr "Sin conexión · Últimos envíos guardados"
+
+#: src/ui/mod.rs
+msgid "Offline verfügbar"
+msgstr "Disponible sin conexión"
+
+#: src/ui/mod.rs
+msgid "Der zuletzt gespeicherte Parcel-Stand wird angezeigt."
+msgstr "Se muestran los últimos datos guardados de Parcel."
+
+#: src/ui/mod.rs
+msgid "PARCEL PREMIUM"
+msgstr "PARCEL PREMIUM"
+
+#: src/ui/mod.rs
+msgid "Meine Sendungen"
+msgstr "Mis envíos"
+
+#: src/ui/mod.rs
+msgid "Aktiv"
+msgstr "Activos"
+
+#: src/ui/mod.rs
+msgid "Noch nicht verbunden"
+msgstr "Aún sin conexión"
+
+#: src/ui/mod.rs
+msgid "Dein API-Schlüssel wird später sicher im GNOME-Schlüsselbund gespeichert."
+msgstr "Tu clave de API se guardará de forma segura en el llavero de GNOME."
+
+#: src/ui/mod.rs
+msgid "Mit Parcel verbunden"
+msgstr "Conectado con Parcel"
+
+#: src/ui/mod.rs
+msgid "Der API-Schlüssel liegt geschützt im GNOME-Schlüsselbund."
+msgstr "La clave de API está protegida en el llavero de GNOME."
+
+#: src/ui/mod.rs
+msgid "Verbinde dein Parcel-Premium-Konto, um Live-Daten zu laden."
+msgstr "Conecta tu cuenta de Parcel Premium para cargar datos en directo."
+
+#: src/ui/mod.rs
+msgid "Offen"
+msgstr "Pendiente"
+
+#: src/ui/mod.rs
+msgid "Weitere Optionen"
+msgstr "Más opciones"
+
+#: src/ui/mod.rs
+msgid "In Parcel Web öffnen"
+msgstr "Abrir en Parcel Web"
+
+#: src/ui/mod.rs
+msgid "VORAUSSICHTLICH"
+msgstr "PREVISTO"
+
+#: src/ui/mod.rs
+msgid "SENDUNGSNUMMER"
+msgstr "NÚMERO DE SEGUIMIENTO"
+
+#: src/ui/mod.rs
+msgid "Sendungsnummer kopieren"
+msgstr "Copiar número de seguimiento"
+
+#: src/ui/mod.rs
+msgid "Sendungsverlauf"
+msgstr "Historial de seguimiento"
+
+#: src/ui/mod.rs
+msgid "LIVE"
+msgstr "EN DIRECTO"
+
+#: src/ui/mod.rs
+msgid "Keine Sendung ausgewählt"
+msgstr "Ningún envío seleccionado"
+
+#: src/ui/mod.rs
+msgid "Wähle links eine Sendung aus, um ihren Verlauf zu sehen."
+msgstr "Selecciona un envío a la izquierda para ver su historial."
+
+#: src/ui/mod.rs
+msgid "Sendungsnummer kopiert"
+msgstr "Número de seguimiento copiado"
+
+#: src/model.rs
+msgid "Zugestellt"
+msgstr "Entregado"
+
+#: src/model.rs
+msgid "Keine Aktualisierung"
+msgstr "Sin actualizaciones"
+
+#: src/model.rs
+msgid "Unterwegs"
+msgstr "En tránsito"
+
+#: src/model.rs
+msgid "Abholbereit"
+msgstr "Listo para recoger"
+
+#: src/model.rs
+msgid "In Zustellung"
+msgstr "En reparto"
+
+#: src/model.rs
+msgid "Nicht gefunden"
+msgstr "No encontrado"
+
+#: src/model.rs
+msgid "Zustellversuch fehlgeschlagen"
+msgstr "Intento de entrega fallido"
+
+#: src/model.rs
+msgid "Aufmerksamkeit erforderlich"
+msgstr "Requiere atención"
+
+#: src/model.rs
+msgid "Elektronisch angekündigt"
+msgstr "Información de envío recibida"
+
+#: src/model.rs
+msgid "Unbekannter Status"
+msgstr "Estado desconocido"
+
+#: src/api/types.rs
+msgid "Noch keine Aktualisierung"
+msgstr "Aún no hay actualizaciones"
+
+#: src/notifications.rs
+msgid "Öffne Ankunft, um die Änderungen anzusehen."
+msgstr "Abre Ankunft para ver los cambios."
+
+#: src/notifications.rs
+msgid "Sendung zugestellt"
+msgstr "Envío entregado"
+
+#: src/notifications.rs
+msgid "Eine Sendung wurde erfolgreich zugestellt."
+msgstr "Un envío se entregó correctamente."
+
+#: src/notifications.rs
+msgid "Sendung abholbereit"
+msgstr "Envío listo para recoger"
+
+#: src/notifications.rs
+msgid "Eine Sendung wartet auf ihre Abholung."
+msgstr "Hay un envío esperando a ser recogido."
+
+#: src/notifications.rs
+msgid "Sendung in Zustellung"
+msgstr "Envío en reparto"
+
+#: src/notifications.rs
+msgid "Eine Sendung ist auf dem Weg zur Zustelladresse."
+msgstr "Un envío está de camino a la dirección de entrega."
+
+#: src/notifications.rs
+msgid "Eine Sendung konnte nicht zugestellt werden."
+msgstr "No se pudo entregar un envío."
+
+#: src/notifications.rs
+msgid "Problem bei einer Sendung"
+msgstr "Problema con un envío"
+
+#: src/notifications.rs
+msgid "Eine Sendung benötigt möglicherweise Aufmerksamkeit."
+msgstr "Es posible que un envío requiera tu atención."
+
+#: src/secrets.rs
+msgid "Ankunft – Parcel API-Schlüssel"
+msgstr "Ankunft – Clave de API de Parcel"
+
+#: src/secrets.rs
+msgid "Der API-Schlüssel ist leer oder enthält ungültige Zeichen."
+msgstr "La clave de API está vacía o contiene caracteres no válidos."
+
+#: src/secrets.rs
+msgid "Der gespeicherte API-Schlüssel hat ein ungültiges Format."
+msgstr "La clave de API guardada tiene un formato no válido."
+
+#: src/secrets.rs
+msgid "Der Zugriff auf den Schlüsselbund wurde abgebrochen."
+msgstr "Se canceló el acceso al llavero."
+
+#: src/secrets.rs
+msgid "Der GNOME-Schlüsselbund ist gesperrt."
+msgstr "El llavero de GNOME está bloqueado."
+
+#: src/secrets.rs
+msgid "Der Zugriff auf den GNOME-Schlüsselbund wurde verweigert."
+msgstr "Se denegó el acceso al llavero de GNOME."
+
+#: src/secrets.rs
+msgid "Der GNOME-Schlüsselbund ist nicht verfügbar."
+msgstr "El llavero de GNOME no está disponible."
+
+#: src/secrets.rs
+msgid "Der GNOME-Schlüsselbund hat einen nicht unterstützten Eintrag geliefert."
+msgstr "El llavero de GNOME devolvió una entrada no compatible."
+
+#: src/secrets.rs
+msgid "Der API-Schlüssel konnte nicht sicher verarbeitet werden."
+msgstr "No se pudo procesar la clave de API de forma segura."
+
+#: src/api/client.rs
+msgid "Das lokale Abruflimit ist erreicht. Bitte später erneut versuchen."
+msgstr "Se alcanzó el límite local de actualizaciones. Inténtalo de nuevo más tarde."
+
+#: src/api/client.rs
+msgid "Der lokale Schutz des Parcel-API-Limits ist nicht verfügbar: {0}"
+msgstr "La protección local del límite de la API de Parcel no está disponible: {0}"
+
+#: src/api/client.rs
+msgid "Der API-Schlüssel hat kein gültiges HTTP-Headerformat."
+msgstr "La clave de API no tiene un formato válido para una cabecera HTTP."
+
+#: src/api/client.rs
+msgid "Parcel hat die Anfrage abgelehnt: {0}"
+msgstr "Parcel rechazó la solicitud: {0}"
+
+#: src/api/client.rs
+msgid "Netzwerkfehler: {0}"
+msgstr "Error de red: {0}"
+
+#: src/api/client.rs
+msgid "Unbekannter API-Fehler"
+msgstr "Error de API desconocido"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher konnte nicht gelesen oder geschrieben werden: {0}"
+msgstr "No se pudo leer o escribir el almacenamiento local de envíos: {0}"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher ist beschädigt: {0}"
+msgstr "El almacenamiento local de envíos está dañado: {0}"
+
+#: src/storage.rs
+msgid "Die Cache-Version {found} wird von dieser Version von Ankunft nicht unterstützt (erwartet: {expected})."
+msgstr "La versión de caché {found} no es compatible con esta versión de Ankunft (esperada: {expected})."
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher ist ungewöhnlich groß ({size} Bytes)."
+msgstr "El almacenamiento local de envíos es inusualmente grande ({size} bytes)."
+
+#: src/storage.rs
+msgid "Der private Speicherpfad ist kein reguläres Verzeichnis: {0}"
+msgstr "La ruta de almacenamiento privado no es un directorio normal: {0}"
+
+#: src/storage.rs
+msgid "Die Cache-Datei ist keine reguläre Datei: {0}"
+msgstr "El archivo de caché no es un archivo normal: {0}"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher ist intern gesperrt."
+msgstr "El almacenamiento local de envíos está bloqueado internamente."
+
+#: src/rate_limit.rs
+msgid "Abruf"
+msgstr "Actualización"
+
+#: src/rate_limit.rs
+msgid "Hinzufügen"
+msgstr "Adición"
+
+#: src/rate_limit.rs
+msgid "Das lokale Limit für {kind} ist erreicht. Der nächste Versuch ist ab Unix-Zeit {retry_at_unix_secs} möglich."
+msgstr "Se alcanzó el límite local de {kind}. El siguiente intento será posible a partir de la hora Unix {retry_at_unix_secs}."
+
+#: src/rate_limit.rs
+msgid "Die Systemzeit liegt vor dem Unix-Zeitbeginn."
+msgstr "La hora del sistema es anterior a la época Unix."
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler konnte nicht gelesen oder geschrieben werden: {0}"
+msgstr "No se pudo leer o escribir el contador local de API: {0}"
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler ist beschädigt: {0}"
+msgstr "El contador local de API está dañado: {0}"
+
+#: src/rate_limit.rs
+msgid "Die Zähler-Version {found} wird von dieser Version von Ankunft nicht unterstützt (erwartet: {expected})."
+msgstr "La versión del contador {found} no es compatible con esta versión de Ankunft (esperada: {expected})."
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler ist inkonsistent: {0}"
+msgstr "El contador local de API es incoherente: {0}"
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler ist ungewöhnlich groß ({size} Bytes)."
+msgstr "El contador local de API es inusualmente grande ({size} bytes)."
+
+#: src/rate_limit.rs
+msgid "Die Zähler-Datei ist keine reguläre Datei: {0}"
+msgstr "El archivo del contador no es un archivo normal: {0}"
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler ist intern gesperrt."
+msgstr "El contador local de API está bloqueado internamente."
+
+#: src/rate_limit.rs
+msgid "zu viele gespeicherte Leseversuche"
+msgstr "demasiados intentos de lectura guardados"
+
+#: src/rate_limit.rs
+msgid "zu viele gespeicherte Hinzufügeversuche"
+msgstr "demasiados intentos de adición guardados"
+
+#: src/rate_limit.rs
+msgid "Versuche ohne letzten Zeitbezug"
+msgstr "intentos sin una última referencia temporal"
+
+#: src/rate_limit.rs
+msgid "Zeitstempel sind nicht sortiert"
+msgstr "las marcas de tiempo no están ordenadas"
+
+#: src/rate_limit.rs
+msgid "Versuch liegt nach der zuletzt beobachteten Zeit"
+msgstr "el intento es posterior a la última hora observada"
+
+#: src/model.rs
+msgid "Österreichische Post"
+msgstr "Correo Austríaco"
+
+#: src/model.rs
+msgid "AirPods Zubehör"
+msgstr "Accesorios para AirPods"
+
+#: src/model.rs
+msgid "Heute"
+msgstr "Hoy"
+
+#: src/model.rs
+msgid "zwischen 12:10 und 14:40 Uhr"
+msgstr "entre las 12:10 y las 14:40"
+
+#: src/model.rs
+msgid "Vor 18 Minuten"
+msgstr "Hace 18 minutos"
+
+#: src/model.rs
+msgid "Sendung ist in Zustellung"
+msgstr "El envío está en reparto"
+
+#: src/model.rs
+msgid "Heute, 08:12"
+msgstr "Hoy, 08:12"
+
+#: src/model.rs
+msgid "Wien"
+msgstr "Viena"
+
+#: src/model.rs
+msgid "Die Zustellung erfolgt voraussichtlich heute."
+msgstr "La entrega está prevista para hoy."
+
+#: src/model.rs
+msgid "Im Verteilzentrum bearbeitet"
+msgstr "Procesado en el centro de distribución"
+
+#: src/model.rs
+msgid "Heute, 05:46"
+msgstr "Hoy, 05:46"
+
+#: src/model.rs
+msgid "Logistikzentrum Wien"
+msgstr "Centro logístico de Viena"
+
+#: src/model.rs
+msgid "Sendung übernommen"
+msgstr "Envío aceptado"
+
+#: src/model.rs
+msgid "Gestern, 17:20"
+msgstr "Ayer, 17:20"
+
+#: src/model.rs
+msgid "Linz"
+msgstr "Linz"
+
+#: src/model.rs
+msgid "Kaffeebohnen"
+msgstr "Granos de café"
+
+#: src/model.rs
+msgid "Morgen"
+msgstr "Mañana"
+
+#: src/model.rs
+msgid "bis zum Ende des Tages"
+msgstr "antes de que termine el día"
+
+#: src/model.rs
+msgid "Vor 2 Stunden"
+msgstr "Hace 2 horas"
+
+#: src/model.rs
+msgid "Unterwegs zum Zieldepot"
+msgstr "De camino al almacén de destino"
+
+#: src/model.rs
+msgid "Heute, 06:32"
+msgstr "Hoy, 06:32"
+
+#: src/model.rs
+msgid "Hörsching"
+msgstr "Hörsching"
+
+#: src/model.rs
+msgid "Paket im DPD-System erfasst"
+msgstr "Paquete registrado en el sistema de DPD"
+
+#: src/model.rs
+msgid "Gestern, 16:05"
+msgstr "Ayer, 16:05"
+
+#: src/model.rs
+msgid "Bücherbestellung"
+msgstr "Pedido de libros"
+
+#: src/model.rs
+msgid "noch 4 Tage im PaketShop"
+msgstr "4 días más en el punto de recogida"
+
+#: src/model.rs
+msgid "Gestern"
+msgstr "Ayer"
+
+#: src/model.rs
+msgid "Im GLS PaketShop abholbereit"
+msgstr "Listo para recoger en el GLS ParcelShop"
+
+#: src/model.rs
+msgid "Gestern, 15:41"
+msgstr "Ayer, 15:41"
+
+#: src/model.rs
+msgid "Wien 7"
+msgstr "Viena 7"
+
+#: src/model.rs
+msgid "Bitte Lichtbildausweis mitnehmen."
+msgstr "Lleva un documento de identidad con foto."
+
+#: src/model.rs
+msgid "Zustellung nicht möglich"
+msgstr "Entrega no posible"
+
+#: src/model.rs
+msgid "Gestern, 13:18"
+msgstr "Ayer, 13:18"
+
+#: src/model.rs
+msgid "Entwicklerboard"
+msgstr "Placa de desarrollo"
+
+#: src/model.rs
+msgid "Freitag"
+msgstr "Viernes"
+
+#: src/model.rs
+msgid "Termin wird noch bestätigt"
+msgstr "Fecha pendiente de confirmación"
+
+#: src/model.rs
+msgid "Sendungsinformation eingegangen"
+msgstr "Información de envío recibida"
+
+#: src/model.rs
+msgid "Gestern, 11:24"
+msgstr "Ayer, 11:24"
+
+#: src/model.rs
+msgid "Die Sendung wurde noch nicht an DHL übergeben."
+msgstr "El envío aún no se ha entregado a DHL."
+
+#: src/model.rs
+msgid "Monitorarm"
+msgstr "Brazo para monitor"
+
+#: src/model.rs
+msgid "Montag um 10:17 Uhr"
+msgstr "Lunes a las 10:17"
+
+#: src/model.rs
+msgid "Montag"
+msgstr "Lunes"
+
+#: src/model.rs
+msgid "Montag, 10:17"
+msgstr "Lunes, 10:17"
+
+#: src/model.rs
+msgid "Beim Empfänger abgegeben."
+msgstr "Entregado al destinatario."
+
+#: src/model.rs
+msgid "Montag, 07:31"
+msgstr "Lunes, 07:31"
+
+#: src/notifications.rs
+msgid "{} wichtige Sendungsänderung"
+msgid_plural "{} wichtige Sendungsänderungen"
+msgstr[0] "{} cambio importante en un envío"
+msgstr[1] "{} cambios importantes en envíos"

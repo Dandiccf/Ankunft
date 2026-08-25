@@ -2,15 +2,27 @@
 <component type="desktop-application">
   <id>io.github.dandiccf.Ankunft</id>
   <name>Ankunft</name>
-  <summary>Deine Parcel-Sendungen auf einen Blick</summary>
+  <summary>Your Parcel deliveries at a glance</summary>
+  <summary xml:lang="de">Deine Parcel-Sendungen auf einen Blick</summary>
+  <summary xml:lang="fr">Vos livraisons Parcel en un coup d'œil</summary>
+  <summary xml:lang="es">Tus envíos de Parcel de un vistazo</summary>
+  <summary xml:lang="it">Le tue spedizioni Parcel a colpo d'occhio</summary>
+  <summary xml:lang="pt-BR">Suas entregas do Parcel em um só lugar</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
-  <developer_name>Ankunft Contributors</developer_name>
+  <developer id="io.github.dandiccf">
+    <name>Ankunft Contributors</name>
+  </developer>
   <description>
     <p>
-      Ankunft ist ein moderner GNOME-Client für Parcel Premium mit nativen
-      Benachrichtigungen und einer übersichtlichen Sendungshistorie.
+      Ankunft is a modern GNOME client for Parcel Premium with native
+      notifications and a clear delivery history.
     </p>
+    <p xml:lang="de">Ankunft ist ein moderner GNOME-Client für Parcel Premium mit nativen Benachrichtigungen und einer übersichtlichen Sendungshistorie.</p>
+    <p xml:lang="fr">Ankunft est un client GNOME moderne pour Parcel Premium, avec des notifications natives et un historique clair des livraisons.</p>
+    <p xml:lang="es">Ankunft es un cliente moderno de GNOME para Parcel Premium, con notificaciones nativas y un historial de envíos claro.</p>
+    <p xml:lang="it">Ankunft è un moderno client GNOME per Parcel Premium, con notifiche native e una cronologia chiara delle spedizioni.</p>
+    <p xml:lang="pt-BR">Ankunft é um cliente GNOME moderno para Parcel Premium, com notificações nativas e um histórico claro de entregas.</p>
   </description>
   <launchable type="desktop-id">io.github.dandiccf.Ankunft.desktop</launchable>
   <content_rating type="oars-1.1" />

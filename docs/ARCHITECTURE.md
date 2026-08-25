@@ -13,13 +13,14 @@ im Hintergrund zuverlässig arbeiten kann.
 - `api`: typisierte Parcel-DTOs, API-Client und lokale Schutzlimits
 - `ui`: GNOME-Oberfläche, Filter, Suche und Timeline
 - `app`: Lebenszyklus, Aktionen und Desktop-Integration
+- `secrets`: Parcel-API-Schlüssel im GNOME-Schlüsselbund
+- `storage`: versionierter, atomar geschriebener Offline-Cache mit privaten Dateirechten
+- `rate_limit`: persistentes, gleitendes Rate-Limit-Ledger
+- `notifications`: datensparsame, gebündelte GNOME-Statusmeldungen
 
 Geplante Module:
 
-- `storage`: atomarer SQLite-Cache und persistentes Rate-Limit-Ledger
-- `secrets`: Parcel-API-Schlüssel im GNOME-Schlüsselbund
 - `sync`: Hintergrundabgleich und Änderungsberechnung
-- `notifications`: gebündelte `GNotification`-Meldungen
 - `tray`: optionales StatusNotifierItem ohne Abhängigkeit der Hauptoberfläche
 
 ## Parcel-API
@@ -39,14 +40,12 @@ garantierte Zeitzone fehlt. Sie werden so dargestellt, wie Parcel sie liefert.
 - API-Schlüssel ausschließlich im GNOME-Schlüsselbund
 - Trackingnummern, Postleitzahlen, E-Mail-Adressen und API-Antworten niemals in Logs
 - lokaler Cache nur mit Benutzerrechten lesbar
+- Cache enthält ausschließlich normalisierte Sendungen, niemals API-Schlüssel oder rohe Antworten
 - keine Telemetrie und keine zusätzlichen Trackingdienste
 - erster erfolgreicher Abgleich erzeugt keine Benachrichtigungsflut
 
 ## Nächste Meilensteine
 
-1. Einrichtungsdialog und GNOME-Schlüsselbund
-2. atomarer SQLite-Cache und persistenter Rate-Limiter
-3. Live-Synchronisierung außerhalb des GTK-Hauptthreads
-4. native Benachrichtigungen und optionaler Hintergrundbetrieb
-5. StatusNotifierItem, Autostart und reproduzierbare Paketierung
-
+1. Hinzufügen-Dialog mit durchsuchbarer Paketdienstliste
+2. optionaler Hintergrundbetrieb und regelmäßiger Abgleich
+3. StatusNotifierItem, Autostart und reproduzierbare Paketierung

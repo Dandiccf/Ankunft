@@ -1,9 +1,21 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use adw::prelude::*;
 use gtk::{Align, Orientation, gio};
+use secrecy::{ExposeSecret, SecretString};
 
-use crate::model::{Delivery, DeliveryStatus, demo_deliveries};
+use crate::{
+    api::{ApiError, FilterMode, ParcelClient},
+    i18n::{interpolate, tr},
+    model::{Delivery, DeliveryStatus, demo_deliveries},
+    notifications, secrets,
+    storage::{DeliveryCache, SnapshotKind},
+};
 
 const STATUS_CLASSES: [&str; 6] = [
     "status-delivered",
@@ -13,6 +25,7 @@ const STATUS_CLASSES: [&str; 6] = [
     "status-muted",
     "status-transit",
 ];
+const AUTOMATIC_REFRESH_INTERVAL_SECS: u64 = 15 * 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DeliveryFilter {
@@ -23,15 +36,21 @@ enum DeliveryFilter {
     Recent,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BannerAction {
+    Connect,
+    Retry,
+}
+
 impl DeliveryFilter {
-    fn title(self) -> &'static str {
-        match self {
+    fn title(self) -> String {
+        tr(match self {
             Self::Active => "Aktive Sendungen",
             Self::InTransit => "Unterwegs",
             Self::OutForDelivery => "In Zustellung",
             Self::ReadyForPickup => "Abholbereit",
             Self::Recent => "Kürzlich",
-        }
+        })
     }
 
     fn matches(self, status: DeliveryStatus) -> bool {
@@ -50,6 +69,8 @@ impl DeliveryFilter {
 
 #[derive(Clone)]
 struct DetailView {
+    stack: gtk::Stack,
+    empty_page: adw::StatusPage,
     carrier_badge: gtk::Label,
     carrier_name: gtk::Label,
     description: gtk::Label,
@@ -65,15 +86,19 @@ struct DetailView {
 
 impl DetailView {
     fn update(&self, delivery: &Delivery) {
+        self.stack.set_visible_child_name("delivery");
         self.carrier_badge.set_label(&delivery.initials());
         self.carrier_name.set_label(&delivery.carrier_name);
         self.description.set_label(&delivery.description);
         self.tracking_number.set_label(&delivery.tracking_number);
         self.status_icon
             .set_icon_name(Some(delivery.status.icon_name()));
-        self.status_label.set_label(delivery.status.label());
-        self.expected
-            .set_label(delivery.expected.as_deref().unwrap_or("Noch offen"));
+        self.status_label.set_label(&delivery.status.label());
+        let expected = delivery
+            .expected
+            .clone()
+            .unwrap_or_else(|| tr("Noch offen"));
+        self.expected.set_label(&expected);
         self.expected_detail
             .set_label(delivery.expected_detail.as_deref().unwrap_or(""));
         self.progress.set_fraction(delivery.status.progress());
@@ -90,8 +115,10 @@ impl DetailView {
         if delivery.events.is_empty() {
             let empty = adw::StatusPage::builder()
                 .icon_name("mail-unread-symbolic")
-                .title("Noch keine Ereignisse")
-                .description("Parcel hat für diese Sendung noch keine Details bereitgestellt.")
+                .title(tr("Noch keine Ereignisse"))
+                .description(tr(
+                    "Parcel hat für diese Sendung noch keine Details bereitgestellt.",
+                ))
                 .vexpand(true)
                 .build();
             self.timeline.append(&empty);
@@ -108,17 +135,24 @@ impl DetailView {
             }
         }
     }
+
+    fn show_empty(&self, title: &str, description: &str) {
+        self.empty_page.set_title(title);
+        self.empty_page.set_description(Some(description));
+        self.stack.set_visible_child_name("empty");
+    }
 }
 
 pub fn build_window(app: &adw::Application) {
-    let deliveries = Rc::new(demo_deliveries());
+    let (initial_deliveries, cache, cache_warning, cached_at) = load_initial_deliveries();
+    let deliveries = Rc::new(RefCell::new(initial_deliveries));
     let current_filter = Rc::new(RefCell::new(DeliveryFilter::Active));
     let visible_indices = Rc::new(RefCell::new(Vec::<usize>::new()));
     let search_query = Rc::new(RefCell::new(String::new()));
 
     let window = adw::ApplicationWindow::builder()
         .application(app)
-        .title("Ankunft")
+        .title(tr("Ankunft"))
         .default_width(1280)
         .default_height(790)
         .width_request(900)
@@ -133,11 +167,11 @@ pub fn build_window(app: &adw::Application) {
 
     let header = adw::HeaderBar::new();
     header.add_css_class("flat-header");
-    let title = adw::WindowTitle::new("Ankunft", "Deine Lieferungen auf einen Blick");
+    let title = adw::WindowTitle::new(&tr("Ankunft"), &tr("Deine Lieferungen auf einen Blick"));
     header.set_title_widget(Some(&title));
 
     let search = gtk::SearchEntry::builder()
-        .placeholder_text("Sendungen durchsuchen")
+        .placeholder_text(tr("Sendungen durchsuchen"))
         .width_request(260)
         .build();
     search.set_key_capture_widget(Some(&window));
@@ -145,13 +179,34 @@ pub fn build_window(app: &adw::Application) {
 
     let refresh_button = gtk::Button::builder()
         .icon_name("view-refresh-symbolic")
-        .tooltip_text("Sendungen aktualisieren")
+        .tooltip_text(tr("Sendungen aktualisieren"))
         .build();
     header.pack_end(&refresh_button);
 
+    let account_button = gtk::MenuButton::builder()
+        .icon_name("open-menu-symbolic")
+        .tooltip_text(tr("Parcel-Verbindung verwalten"))
+        .build();
+    let account_popover = gtk::Popover::new();
+    let account_actions = gtk::Box::new(Orientation::Vertical, 4);
+    account_actions.set_margin_start(8);
+    account_actions.set_margin_end(8);
+    account_actions.set_margin_top(8);
+    account_actions.set_margin_bottom(8);
+    let change_connection_button = gtk::Button::with_label(&tr("API-Schlüssel ändern"));
+    change_connection_button.add_css_class("flat");
+    let disconnect_button = gtk::Button::with_label(&tr("Verbindung entfernen"));
+    disconnect_button.add_css_class("flat");
+    disconnect_button.add_css_class("destructive-action");
+    account_actions.append(&change_connection_button);
+    account_actions.append(&disconnect_button);
+    account_popover.set_child(Some(&account_actions));
+    account_button.set_popover(Some(&account_popover));
+    header.pack_end(&account_button);
+
     let add_button = gtk::Button::builder()
         .icon_name("list-add-symbolic")
-        .tooltip_text("Neue Sendung")
+        .tooltip_text(tr("Neue Sendung"))
         .build();
     add_button.add_css_class("suggested-action");
     header.pack_end(&add_button);
@@ -164,7 +219,7 @@ pub fn build_window(app: &adw::Application) {
     main_paned.set_shrink_start_child(false);
     root.append(&main_paned);
 
-    let sidebar = build_sidebar(&deliveries);
+    let sidebar = build_sidebar(&deliveries.borrow());
     main_paned.set_start_child(Some(&sidebar.container));
 
     let content_paned = gtk::Paned::new(Orientation::Horizontal);
@@ -175,19 +230,19 @@ pub fn build_window(app: &adw::Application) {
 
     let list_column = gtk::Box::new(Orientation::Vertical, 0);
     list_column.add_css_class("list-column");
-    let demo_banner = adw::Banner::builder()
-        .title("Prototypmodus · Sichere Beispieldaten")
-        .button_label("API verbinden")
+    let connection_banner = adw::Banner::builder()
+        .title(tr("Prototypmodus · Sichere Beispieldaten"))
+        .button_label(tr("API verbinden"))
         .revealed(true)
         .build();
-    list_column.append(&demo_banner);
+    list_column.append(&connection_banner);
 
     let list_header = gtk::Box::new(Orientation::Horizontal, 10);
     list_header.set_margin_start(20);
     list_header.set_margin_end(18);
     list_header.set_margin_top(18);
     list_header.set_margin_bottom(10);
-    let list_title = gtk::Label::new(Some(DeliveryFilter::Active.title()));
+    let list_title = gtk::Label::new(Some(&DeliveryFilter::Active.title()));
     list_title.set_xalign(0.0);
     list_title.set_hexpand(true);
     list_title.add_css_class("title-3");
@@ -231,7 +286,8 @@ pub fn build_window(app: &adw::Application) {
 
             let filter = *current_filter.borrow();
             let query = search_query.borrow();
-            let indices: Vec<usize> = deliveries
+            let delivery_data = deliveries.borrow();
+            let indices: Vec<usize> = delivery_data
                 .iter()
                 .enumerate()
                 .filter(|(_, delivery)| {
@@ -241,19 +297,36 @@ pub fn build_window(app: &adw::Application) {
                 .collect();
 
             for index in &indices {
-                delivery_list.append(&delivery_row(&deliveries[*index]));
+                delivery_list.append(&delivery_row(&delivery_data[*index]));
             }
             *visible_indices.borrow_mut() = indices;
 
             let count = visible_indices.borrow().len();
-            list_title.set_label(filter.title());
+            list_title.set_label(&filter.title());
             list_count.set_label(&count.to_string());
 
             if let Some(row) = delivery_list.row_at_index(0) {
                 delivery_list.select_row(Some(&row));
                 if let Some(index) = visible_indices.borrow().first() {
-                    detail_view.update(&deliveries[*index]);
+                    detail_view.update(&delivery_data[*index]);
                 }
+            } else if delivery_data.is_empty() {
+                detail_view.show_empty(
+                    &tr("Keine Sendungen vorhanden"),
+                    &tr("In deinem Parcel-Konto sind derzeit keine Sendungen gespeichert."),
+                );
+            } else if query.trim().is_empty() {
+                detail_view.show_empty(
+                    &tr("Keine passenden Sendungen"),
+                    &tr("Für diesen Bereich gibt es momentan keine Sendungen."),
+                );
+            } else {
+                detail_view.show_empty(
+                    &tr("Keine Suchtreffer"),
+                    &tr(
+                        "Versuche es mit einer anderen Beschreibung, Paketnummer oder einem Paketdienst.",
+                    ),
+                );
             }
         })
     };
@@ -268,7 +341,7 @@ pub fn build_window(app: &adw::Application) {
             };
             let visible_position = row.index() as usize;
             if let Some(delivery_index) = visible_indices.borrow().get(visible_position) {
-                detail_view.update(&deliveries[*delivery_index]);
+                detail_view.update(&deliveries.borrow()[*delivery_index]);
             }
         });
     }
@@ -301,30 +374,65 @@ pub fn build_window(app: &adw::Application) {
         });
     }
 
+    let live_ui = LiveUi {
+        deliveries: deliveries.clone(),
+        application: app.clone(),
+        sidebar: sidebar.clone(),
+        banner: connection_banner.clone(),
+        toast_overlay: toast_overlay.clone(),
+        refresh_button: refresh_button.clone(),
+        rebuild: rebuild.clone(),
+        loading: Rc::new(Cell::new(false)),
+        dialog_open: Rc::new(Cell::new(false)),
+        cache,
+        using_real_data: Rc::new(Cell::new(cached_at.is_some())),
+        last_fetched_at: Rc::new(Cell::new(cached_at)),
+        banner_action: Rc::new(Cell::new(BannerAction::Connect)),
+    };
+
     {
-        let toast_overlay = toast_overlay.clone();
+        let window = window.clone();
+        let live_ui = live_ui.clone();
         refresh_button.connect_clicked(move |_| {
-            let toast = adw::Toast::new("Beispieldaten sind bereits aktuell");
-            toast.set_timeout(3);
-            toast_overlay.add_toast(toast);
+            restore_connection(&window, &live_ui, true, false);
         });
     }
 
     {
         let toast_overlay = toast_overlay.clone();
         add_button.connect_clicked(move |_| {
-            toast_overlay.add_toast(adw::Toast::new(
+            toast_overlay.add_toast(adw::Toast::new(&tr(
                 "Das Hinzufügen wird mit der sicheren API-Einrichtung aktiviert",
-            ));
+            )));
         });
     }
 
     {
-        let toast_overlay = toast_overlay.clone();
-        demo_banner.connect_button_clicked(move |_| {
-            toast_overlay.add_toast(adw::Toast::new(
-                "Der Einrichtungsassistent folgt im nächsten Schritt",
-            ));
+        let window = window.clone();
+        let live_ui = live_ui.clone();
+        connection_banner.connect_button_clicked(move |_| match live_ui.banner_action.get() {
+            BannerAction::Connect => show_connection_dialog(&window, &live_ui),
+            BannerAction::Retry => restore_connection(&window, &live_ui, true, false),
+        });
+    }
+
+    {
+        let window = window.clone();
+        let live_ui = live_ui.clone();
+        let account_popover = account_popover.clone();
+        change_connection_button.connect_clicked(move |_| {
+            account_popover.popdown();
+            show_connection_dialog(&window, &live_ui);
+        });
+    }
+
+    {
+        let window = window.clone();
+        let live_ui = live_ui.clone();
+        let account_popover = account_popover.clone();
+        disconnect_button.connect_clicked(move |_| {
+            account_popover.popdown();
+            confirm_disconnect(&window, &live_ui);
         });
     }
 
@@ -334,11 +442,413 @@ pub fn build_window(app: &adw::Application) {
     }
 
     window.present();
+    if let Some(warning) = cache_warning {
+        let message = interpolate(
+            tr("Der Offline-Speicher ist nicht verfügbar: {warning}"),
+            &[("warning", &warning)],
+        );
+        show_toast(&live_ui, &message);
+    }
+    restore_connection(&window, &live_ui, false, true);
 }
 
+#[derive(Clone)]
+struct LiveUi {
+    deliveries: Rc<RefCell<Vec<Delivery>>>,
+    application: adw::Application,
+    sidebar: Sidebar,
+    banner: adw::Banner,
+    toast_overlay: adw::ToastOverlay,
+    refresh_button: gtk::Button,
+    rebuild: Rc<dyn Fn()>,
+    loading: Rc<Cell<bool>>,
+    dialog_open: Rc<Cell<bool>>,
+    cache: Option<Arc<DeliveryCache>>,
+    using_real_data: Rc<Cell<bool>>,
+    last_fetched_at: Rc<Cell<Option<u64>>>,
+    banner_action: Rc<Cell<BannerAction>>,
+}
+
+fn load_initial_deliveries() -> (
+    Vec<Delivery>,
+    Option<Arc<DeliveryCache>>,
+    Option<String>,
+    Option<u64>,
+) {
+    match DeliveryCache::shared_default() {
+        Ok(cache) => {
+            let snapshot = cache.snapshot(SnapshotKind::Recent).and_then(|snapshot| {
+                if snapshot.is_some() {
+                    Ok(snapshot)
+                } else {
+                    cache.snapshot(SnapshotKind::Active)
+                }
+            });
+            match snapshot {
+                Ok(Some(snapshot)) => {
+                    let fetched_at = snapshot.fetched_at_unix_secs;
+                    (snapshot.deliveries, Some(cache), None, Some(fetched_at))
+                }
+                Ok(None) => (demo_deliveries(), Some(cache), None, None),
+                Err(error) => (
+                    demo_deliveries(),
+                    Some(cache),
+                    Some(error.localized_message()),
+                    None,
+                ),
+            }
+        }
+        Err(error) => (
+            demo_deliveries(),
+            None,
+            Some(error.localized_message()),
+            None,
+        ),
+    }
+}
+
+fn restore_connection(
+    parent: &adw::ApplicationWindow,
+    ui: &LiveUi,
+    prompt_when_missing: bool,
+    prefer_fresh_cache: bool,
+) {
+    if ui.loading.replace(true) {
+        return;
+    }
+
+    ui.refresh_button.set_sensitive(false);
+    ui.banner
+        .set_title(&tr("GNOME-Schlüsselbund wird geprüft …"));
+    ui.banner.set_button_label(None);
+    ui.banner.set_revealed(true);
+
+    let parent = parent.clone();
+    let ui = ui.clone();
+    gtk::glib::spawn_future_local(async move {
+        let stored_key = secrets::load_api_key().await;
+        ui.loading.set(false);
+
+        match stored_key {
+            Ok(Some(api_key)) if prefer_fresh_cache && cached_snapshot_is_fresh(&ui) => {
+                drop(api_key);
+                ui.refresh_button.set_sensitive(true);
+                update_sidebar(&ui.sidebar, &ui.deliveries.borrow(), true);
+                ui.banner.set_revealed(false);
+            }
+            Ok(Some(api_key)) => sync_with_key(&ui, api_key, false),
+            Ok(None) => {
+                show_disconnected(&ui);
+                if prompt_when_missing {
+                    show_connection_dialog(&parent, &ui);
+                }
+            }
+            Err(error) => {
+                show_disconnected(&ui);
+                show_toast(&ui, &error.localized_message());
+                if prompt_when_missing {
+                    show_connection_dialog(&parent, &ui);
+                }
+            }
+        }
+    });
+}
+
+fn cached_snapshot_is_fresh(ui: &LiveUi) -> bool {
+    let Some(fetched_at) = ui.last_fetched_at.get() else {
+        return false;
+    };
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    now.checked_sub(fetched_at)
+        .is_some_and(|age| age < AUTOMATIC_REFRESH_INTERVAL_SECS)
+}
+
+fn show_connection_dialog(parent: &adw::ApplicationWindow, ui: &LiveUi) {
+    if ui.loading.get() || ui.dialog_open.replace(true) {
+        return;
+    }
+
+    let entry = adw::PasswordEntryRow::builder()
+        .title(tr("Parcel API-Schlüssel"))
+        .activates_default(true)
+        .build();
+
+    let group = adw::PreferencesGroup::new();
+    group.add(&entry);
+
+    let link = gtk::LinkButton::with_label(
+        "https://web.parcelapp.net/",
+        &tr("API-Schlüssel in Parcel Web erzeugen"),
+    );
+    link.set_halign(Align::Center);
+
+    let extra = gtk::Box::new(Orientation::Vertical, 12);
+    extra.set_margin_top(8);
+    extra.append(&group);
+    extra.append(&link);
+
+    let dialog = adw::AlertDialog::builder()
+        .heading(tr("Mit Parcel verbinden"))
+        .body(tr(
+            "Dein persönlicher Premium-API-Schlüssel wird ausschließlich im geschützten GNOME-Schlüsselbund gespeichert.",
+        ))
+        .default_response("connect")
+        .close_response("cancel")
+        .extra_child(&extra)
+        .build();
+    dialog.add_response("cancel", &tr("Abbrechen"));
+    dialog.add_response("connect", &tr("Verbinden"));
+    dialog.set_response_appearance("connect", adw::ResponseAppearance::Suggested);
+    dialog.set_response_enabled("connect", false);
+
+    {
+        let dialog = dialog.clone();
+        entry.connect_changed(move |entry| {
+            dialog.set_response_enabled("connect", secrets::parse_api_key(&entry.text()).is_ok());
+        });
+    }
+
+    let ui = ui.clone();
+    let response = dialog.choose_future(Some(parent));
+    gtk::glib::spawn_future_local(async move {
+        let response = response.await;
+        ui.dialog_open.set(false);
+
+        if response != "connect" {
+            entry.set_text("");
+            return;
+        }
+
+        let raw_key = entry.text().to_string();
+        entry.set_text("");
+        match secrets::parse_api_key_owned(raw_key) {
+            Ok(api_key) => sync_with_key(&ui, api_key, true),
+            Err(error) => show_toast(&ui, &error.localized_message()),
+        }
+    });
+}
+
+fn sync_with_key(ui: &LiveUi, api_key: SecretString, persist_key: bool) {
+    if ui.loading.replace(true) {
+        return;
+    }
+
+    ui.refresh_button.set_sensitive(false);
+    ui.banner.set_title(&tr("Live-Sendungen werden geladen …"));
+    ui.banner.set_button_label(None);
+    ui.banner.set_revealed(true);
+
+    let worker_key = SecretString::from(api_key.expose_secret());
+    let cache = ui.cache.clone();
+    let ui = ui.clone();
+    gtk::glib::spawn_future_local(async move {
+        let result = gio::spawn_blocking(move || {
+            let client = ParcelClient::new(worker_key)?;
+            let deliveries = client.deliveries(FilterMode::Recent)?;
+            let fetched_at = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let (previous_snapshot, cache_error) = if let Some(cache) = cache {
+                match cache.replace_snapshot(SnapshotKind::Recent, fetched_at, deliveries.clone()) {
+                    Ok(previous) => (previous, None),
+                    Err(error) => (None, Some(error)),
+                }
+            } else {
+                (None, None)
+            };
+            Ok::<_, ApiError>((deliveries, previous_snapshot, cache_error, fetched_at))
+        })
+        .await;
+
+        match result {
+            Ok(Ok((live_deliveries, previous_snapshot, cache_error, fetched_at))) => {
+                let key_stored = if persist_key {
+                    match secrets::store_api_key(&api_key).await {
+                        Ok(()) => true,
+                        Err(error) => {
+                            show_toast(&ui, &error.localized_message());
+                            false
+                        }
+                    }
+                } else {
+                    true
+                };
+
+                *ui.deliveries.borrow_mut() = live_deliveries;
+                ui.using_real_data.set(true);
+                ui.last_fetched_at.set(Some(fetched_at));
+                update_sidebar(&ui.sidebar, &ui.deliveries.borrow(), key_stored);
+                (ui.rebuild)();
+
+                if cache_error.is_none() {
+                    notifications::notify_delivery_status_changes(
+                        &ui.application,
+                        previous_snapshot.as_ref(),
+                        &ui.deliveries.borrow(),
+                    );
+                }
+
+                if let Some(error) = cache_error {
+                    let error = error.localized_message();
+                    let message = interpolate(
+                        tr("Live-Daten geladen, aber nicht offline gespeichert: {error}"),
+                        &[("error", &error)],
+                    );
+                    show_toast(&ui, &message);
+                }
+
+                if key_stored {
+                    ui.banner.set_revealed(false);
+                    show_toast(&ui, &tr("Live-Sendungen wurden aktualisiert"));
+                } else {
+                    ui.banner
+                        .set_title(&tr("Live-Daten geladen · Schlüssel nicht gespeichert"));
+                    ui.banner.set_button_label(Some(&tr("Erneut verbinden")));
+                    ui.banner_action.set(BannerAction::Connect);
+                    ui.banner.set_revealed(true);
+                }
+            }
+            Ok(Err(error)) => {
+                update_sidebar(&ui.sidebar, &ui.deliveries.borrow(), false);
+                ui.banner
+                    .set_title(&tr("Parcel konnte nicht aktualisiert werden"));
+                ui.banner.set_button_label(Some(&tr("Verbindung prüfen")));
+                ui.banner_action.set(if persist_key {
+                    BannerAction::Connect
+                } else {
+                    BannerAction::Retry
+                });
+                ui.banner.set_revealed(true);
+                let error = error.localized_message();
+                let message = interpolate(
+                    tr("Synchronisierung fehlgeschlagen: {error}"),
+                    &[("error", &error)],
+                );
+                show_toast(&ui, &message);
+            }
+            Err(_) => {
+                ui.banner
+                    .set_title(&tr("Die Synchronisierung wurde unerwartet beendet"));
+                ui.banner.set_button_label(Some(&tr("Erneut versuchen")));
+                ui.banner_action.set(if persist_key {
+                    BannerAction::Connect
+                } else {
+                    BannerAction::Retry
+                });
+                ui.banner.set_revealed(true);
+                show_toast(&ui, &tr("Die Live-Daten konnten nicht geladen werden"));
+            }
+        }
+
+        ui.loading.set(false);
+        ui.refresh_button.set_sensitive(true);
+    });
+}
+
+fn confirm_disconnect(parent: &adw::ApplicationWindow, ui: &LiveUi) {
+    if ui.loading.get() || ui.dialog_open.replace(true) {
+        return;
+    }
+
+    let dialog = adw::AlertDialog::builder()
+        .heading(tr("Parcel-Verbindung entfernen?"))
+        .body(tr(
+            "Der API-Schlüssel wird aus dem GNOME-Schlüsselbund gelöscht. Du kannst dich jederzeit wieder verbinden.",
+        ))
+        .default_response("cancel")
+        .close_response("cancel")
+        .build();
+    dialog.add_response("cancel", &tr("Abbrechen"));
+    dialog.add_response("disconnect", &tr("Entfernen"));
+    dialog.set_response_appearance("disconnect", adw::ResponseAppearance::Destructive);
+
+    let response = dialog.choose_future(Some(parent));
+    let ui = ui.clone();
+    gtk::glib::spawn_future_local(async move {
+        let response = response.await;
+        ui.dialog_open.set(false);
+        if response != "disconnect" {
+            return;
+        }
+
+        ui.loading.set(true);
+        ui.refresh_button.set_sensitive(false);
+        match secrets::clear_api_key().await {
+            Ok(()) => {
+                let cache_warning = if let Some(cache) = ui.cache.clone() {
+                    match gio::spawn_blocking(move || cache.clear()).await {
+                        Ok(Ok(())) => None,
+                        Ok(Err(error)) => Some(error.localized_message()),
+                        Err(_) => Some(tr("Der Offline-Speicher antwortet nicht.")),
+                    }
+                } else {
+                    Some(tr(
+                        "Der Offline-Speicher war beim Start nicht verfügbar; lokale Sendungsdaten konnten nicht entfernt werden.",
+                    ))
+                };
+
+                *ui.deliveries.borrow_mut() = demo_deliveries();
+                ui.using_real_data.set(false);
+                ui.last_fetched_at.set(None);
+                (ui.rebuild)();
+                show_disconnected(&ui);
+                show_toast(&ui, &tr("Parcel-Verbindung wurde entfernt"));
+                if let Some(warning) = cache_warning {
+                    let message = interpolate(
+                        tr("Offline-Daten nicht entfernt: {warning}"),
+                        &[("warning", &warning)],
+                    );
+                    show_toast(&ui, &message);
+                }
+            }
+            Err(error) => {
+                ui.loading.set(false);
+                ui.refresh_button.set_sensitive(true);
+                show_toast(&ui, &error.localized_message());
+            }
+        }
+    });
+}
+
+fn show_disconnected(ui: &LiveUi) {
+    ui.loading.set(false);
+    ui.refresh_button.set_sensitive(true);
+    if ui.using_real_data.get() {
+        ui.banner
+            .set_title(&tr("Offline · Zuletzt gespeicherte Sendungen"));
+    } else {
+        ui.banner
+            .set_title(&tr("Prototypmodus · Sichere Beispieldaten"));
+    }
+    ui.banner.set_button_label(Some(&tr("API verbinden")));
+    ui.banner_action.set(BannerAction::Connect);
+    ui.banner.set_revealed(true);
+    update_sidebar(&ui.sidebar, &ui.deliveries.borrow(), false);
+    if ui.using_real_data.get() {
+        ui.sidebar.sync_title.set_label(&tr("Offline verfügbar"));
+        ui.sidebar
+            .sync_text
+            .set_label(&tr("Der zuletzt gespeicherte Parcel-Stand wird angezeigt."));
+    }
+}
+
+fn show_toast(ui: &LiveUi, message: &str) {
+    let toast = adw::Toast::new(message);
+    toast.set_timeout(4);
+    ui.toast_overlay.add_toast(toast);
+}
+
+#[derive(Clone)]
 struct Sidebar {
     container: gtk::Box,
     list: gtk::ListBox,
+    count_labels: Vec<gtk::Label>,
+    sync_title: gtk::Label,
+    sync_text: gtk::Label,
 }
 
 fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
@@ -351,10 +861,10 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
     heading.set_margin_end(18);
     heading.set_margin_top(22);
     heading.set_margin_bottom(14);
-    let eyebrow = gtk::Label::new(Some("PARCEL PREMIUM"));
+    let eyebrow = gtk::Label::new(Some(&tr("PARCEL PREMIUM")));
     eyebrow.set_xalign(0.0);
     eyebrow.add_css_class("eyebrow");
-    let title = gtk::Label::new(Some("Meine Sendungen"));
+    let title = gtk::Label::new(Some(&tr("Meine Sendungen")));
     title.set_xalign(0.0);
     title.add_css_class("title-2");
     heading.append(&eyebrow);
@@ -370,7 +880,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
     let filters = [
         (
             "view-list-symbolic",
-            "Aktiv",
+            tr("Aktiv"),
             deliveries
                 .iter()
                 .filter(|item| item.status.is_active())
@@ -378,7 +888,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
         ),
         (
             "go-next-symbolic",
-            "Unterwegs",
+            tr("Unterwegs"),
             deliveries
                 .iter()
                 .filter(|item| {
@@ -391,7 +901,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
         ),
         (
             "send-to-symbolic",
-            "In Zustellung",
+            tr("In Zustellung"),
             deliveries
                 .iter()
                 .filter(|item| item.status == DeliveryStatus::OutForDelivery)
@@ -399,7 +909,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
         ),
         (
             "folder-download-symbolic",
-            "Abholbereit",
+            tr("Abholbereit"),
             deliveries
                 .iter()
                 .filter(|item| item.status == DeliveryStatus::ReadyForPickup)
@@ -407,7 +917,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
         ),
         (
             "document-open-recent-symbolic",
-            "Kürzlich",
+            tr("Kürzlich"),
             deliveries
                 .iter()
                 .filter(|item| {
@@ -420,6 +930,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
         ),
     ];
 
+    let mut count_labels = Vec::new();
     for (icon, label, count) in filters {
         let row = gtk::ListBoxRow::new();
         let content = gtk::Box::new(Orientation::Horizontal, 10);
@@ -429,16 +940,17 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
         content.set_margin_bottom(9);
         let image = gtk::Image::from_icon_name(icon);
         image.set_pixel_size(17);
-        let label = gtk::Label::new(Some(label));
+        let label = gtk::Label::new(Some(&label));
         label.set_xalign(0.0);
         label.set_hexpand(true);
-        let count = gtk::Label::new(Some(&count.to_string()));
-        count.add_css_class("sidebar-count");
+        let count_label = gtk::Label::new(Some(&count.to_string()));
+        count_label.add_css_class("sidebar-count");
         content.append(&image);
         content.append(&label);
-        content.append(&count);
+        content.append(&count_label);
         row.set_child(Some(&content));
         list.append(&row);
+        count_labels.push(count_label);
     }
     container.append(&list);
 
@@ -452,12 +964,12 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
     sync_card.set_margin_end(14);
     sync_card.set_margin_bottom(16);
     sync_card.set_margin_top(16);
-    let sync_title = gtk::Label::new(Some("Noch nicht verbunden"));
+    let sync_title = gtk::Label::new(Some(&tr("Noch nicht verbunden")));
     sync_title.set_xalign(0.0);
     sync_title.add_css_class("heading");
-    let sync_text = gtk::Label::new(Some(
+    let sync_text = gtk::Label::new(Some(&tr(
         "Dein API-Schlüssel wird später sicher im GNOME-Schlüsselbund gespeichert.",
-    ));
+    )));
     sync_text.set_xalign(0.0);
     sync_text.set_wrap(true);
     sync_text.add_css_class("caption");
@@ -466,7 +978,64 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
     sync_card.append(&sync_text);
     container.append(&sync_card);
 
-    Sidebar { container, list }
+    Sidebar {
+        container,
+        list,
+        count_labels,
+        sync_title,
+        sync_text,
+    }
+}
+
+fn update_sidebar(sidebar: &Sidebar, deliveries: &[Delivery], connected: bool) {
+    let counts = [
+        deliveries
+            .iter()
+            .filter(|item| item.status.is_active())
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| {
+                matches!(
+                    item.status,
+                    DeliveryStatus::InTransit | DeliveryStatus::InformationReceived
+                )
+            })
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| item.status == DeliveryStatus::OutForDelivery)
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| item.status == DeliveryStatus::ReadyForPickup)
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| {
+                matches!(
+                    item.status,
+                    DeliveryStatus::Delivered | DeliveryStatus::Frozen
+                )
+            })
+            .count(),
+    ];
+
+    for (label, count) in sidebar.count_labels.iter().zip(counts) {
+        label.set_label(&count.to_string());
+    }
+
+    if connected {
+        sidebar.sync_title.set_label(&tr("Mit Parcel verbunden"));
+        sidebar.sync_text.set_label(&tr(
+            "Der API-Schlüssel liegt geschützt im GNOME-Schlüsselbund.",
+        ));
+    } else {
+        sidebar.sync_title.set_label(&tr("Noch nicht verbunden"));
+        sidebar.sync_text.set_label(&tr(
+            "Verbinde dein Parcel-Premium-Konto, um Live-Daten zu laden.",
+        ));
+    }
 }
 
 fn delivery_row(delivery: &Delivery) -> gtk::ListBoxRow {
@@ -501,7 +1070,8 @@ fn delivery_row(delivery: &Delivery) -> gtk::ListBoxRow {
     labels.append(&carrier);
     top.append(&labels);
 
-    let expected = gtk::Label::new(Some(delivery.expected.as_deref().unwrap_or("Offen")));
+    let expected_text = delivery.expected.clone().unwrap_or_else(|| tr("Offen"));
+    let expected = gtk::Label::new(Some(&expected_text));
     expected.set_valign(Align::Start);
     expected.add_css_class("expected-small");
     top.append(&expected);
@@ -510,7 +1080,7 @@ fn delivery_row(delivery: &Delivery) -> gtk::ListBoxRow {
     let status_row = gtk::Box::new(Orientation::Horizontal, 7);
     let status_icon = gtk::Image::from_icon_name(delivery.status.icon_name());
     status_icon.set_pixel_size(14);
-    let status = gtk::Label::new(Some(delivery.status.label()));
+    let status = gtk::Label::new(Some(&delivery.status.label()));
     status.set_xalign(0.0);
     status.set_hexpand(true);
     status.add_css_class("caption");
@@ -530,7 +1100,7 @@ fn delivery_row(delivery: &Delivery) -> gtk::ListBoxRow {
     row
 }
 
-fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::ScrolledWindow, DetailView) {
+fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::Stack, DetailView) {
     let detail = gtk::Box::new(Orientation::Vertical, 0);
     detail.add_css_class("detail-surface");
 
@@ -566,11 +1136,11 @@ fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::ScrolledWindow,
 
     let menu_button = gtk::MenuButton::builder()
         .icon_name("view-more-symbolic")
-        .tooltip_text("Weitere Optionen")
+        .tooltip_text(tr("Weitere Optionen"))
         .valign(Align::Start)
         .build();
     let menu = gio::Menu::new();
-    menu.append(Some("In Parcel Web öffnen"), Some("app.open-web"));
+    menu.append(Some(&tr("In Parcel Web öffnen")), Some("app.open-web"));
     menu_button.set_menu_model(Some(&menu));
     hero_top.append(&menu_button);
     hero.append(&hero_top);
@@ -591,7 +1161,7 @@ fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::ScrolledWindow,
     metrics.set_homogeneous(true);
     let expected_card = gtk::Box::new(Orientation::Vertical, 3);
     expected_card.add_css_class("metric-card");
-    let expected_caption = gtk::Label::new(Some("VORAUSSICHTLICH"));
+    let expected_caption = gtk::Label::new(Some(&tr("VORAUSSICHTLICH")));
     expected_caption.set_xalign(0.0);
     expected_caption.add_css_class("eyebrow");
     let expected = gtk::Label::new(None);
@@ -609,7 +1179,7 @@ fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::ScrolledWindow,
 
     let tracking_card = gtk::Box::new(Orientation::Vertical, 3);
     tracking_card.add_css_class("metric-card");
-    let tracking_caption = gtk::Label::new(Some("SENDUNGSNUMMER"));
+    let tracking_caption = gtk::Label::new(Some(&tr("SENDUNGSNUMMER")));
     tracking_caption.set_xalign(0.0);
     tracking_caption.add_css_class("eyebrow");
     let tracking_row = gtk::Box::new(Orientation::Horizontal, 6);
@@ -620,7 +1190,7 @@ fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::ScrolledWindow,
     tracking_number.add_css_class("heading");
     let copy_button = gtk::Button::builder()
         .icon_name("edit-copy-symbolic")
-        .tooltip_text("Sendungsnummer kopieren")
+        .tooltip_text(tr("Sendungsnummer kopieren"))
         .css_classes(["flat", "circular"])
         .build();
     tracking_row.append(&tracking_number);
@@ -637,11 +1207,11 @@ fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::ScrolledWindow,
     page.append(&hero);
 
     let timeline_heading = gtk::Box::new(Orientation::Horizontal, 8);
-    let timeline_title = gtk::Label::new(Some("Sendungsverlauf"));
+    let timeline_title = gtk::Label::new(Some(&tr("Sendungsverlauf")));
     timeline_title.set_xalign(0.0);
     timeline_title.set_hexpand(true);
     timeline_title.add_css_class("title-3");
-    let live_badge = gtk::Label::new(Some("LIVE"));
+    let live_badge = gtk::Label::new(Some(&tr("LIVE")));
     live_badge.add_css_class("live-badge");
     timeline_heading.append(&timeline_title);
     timeline_heading.append(&live_badge);
@@ -657,20 +1227,34 @@ fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::ScrolledWindow,
         .child(&detail)
         .build();
 
+    let empty_page = adw::StatusPage::builder()
+        .icon_name("mail-unread-symbolic")
+        .title(tr("Keine Sendung ausgewählt"))
+        .description(tr(
+            "Wähle links eine Sendung aus, um ihren Verlauf zu sehen.",
+        ))
+        .build();
+    let stack = gtk::Stack::new();
+    stack.add_named(&scroll, Some("delivery"));
+    stack.add_named(&empty_page, Some("empty"));
+    stack.set_visible_child_name("empty");
+
     {
         let tracking_number = tracking_number.clone();
         let toast_overlay = toast_overlay.clone();
         copy_button.connect_clicked(move |_| {
             if let Some(display) = gtk::gdk::Display::default() {
                 display.clipboard().set_text(&tracking_number.text());
-                toast_overlay.add_toast(adw::Toast::new("Sendungsnummer kopiert"));
+                toast_overlay.add_toast(adw::Toast::new(&tr("Sendungsnummer kopiert")));
             }
         });
     }
 
     (
-        scroll,
+        stack.clone(),
         DetailView {
+            stack,
+            empty_page,
             carrier_badge,
             carrier_name,
             description,

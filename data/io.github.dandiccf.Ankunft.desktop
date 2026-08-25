@@ -1,10 +1,22 @@
 [Desktop Entry]
 Name=Ankunft
-Comment=Deine Parcel-Sendungen auf einen Blick
+Comment=Your Parcel deliveries at a glance
+Comment[de]=Deine Parcel-Sendungen auf einen Blick
+Comment[fr]=Vos livraisons Parcel en un coup d'œil
+Comment[es]=Tus envíos de Parcel de un vistazo
+Comment[it]=Le tue spedizioni Parcel a colpo d'occhio
+Comment[pt_BR]=Suas entregas do Parcel em um só lugar
 Exec=ankunft
 Icon=io.github.dandiccf.Ankunft
 Terminal=false
 Type=Application
+DBusActivatable=true
+X-GNOME-UsesNotifications=true
 Categories=Utility;
-Keywords=Parcel;Paket;Sendung;Tracking;Lieferung;
+Keywords=Parcel;Package;Shipment;Tracking;Delivery;
+Keywords[de]=Parcel;Paket;Sendung;Tracking;Lieferung;
+Keywords[fr]=Parcel;Colis;Expédition;Suivi;Livraison;
+Keywords[es]=Parcel;Paquete;Envío;Seguimiento;Entrega;
+Keywords[it]=Parcel;Pacco;Spedizione;Tracciamento;Consegna;
+Keywords[pt_BR]=Parcel;Pacote;Remessa;Rastreamento;Entrega;
 StartupNotify=true

@@ -1,0 +1,716 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Ankunft 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/dandiccf/ankunft/issues\n"
+"POT-Creation-Date: 2026-08-25 00:00+0200\n"
+"PO-Revision-Date: 2026-08-25 00:00+0200\n"
+"Last-Translator: Ankunft Contributors <noreply@example.invalid>\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Ankunft catalog generator\n"
+
+#: src/ui/mod.rs src/app.rs
+msgid "Ankunft"
+msgstr "Ankunft"
+
+#: src/ui/mod.rs
+msgid "Deine Lieferungen auf einen Blick"
+msgstr "Deine Lieferungen auf einen Blick"
+
+#: src/ui/mod.rs
+msgid "Sendungen durchsuchen"
+msgstr "Sendungen durchsuchen"
+
+#: src/ui/mod.rs
+msgid "Sendungen aktualisieren"
+msgstr "Sendungen aktualisieren"
+
+#: src/ui/mod.rs
+msgid "Parcel-Verbindung verwalten"
+msgstr "Parcel-Verbindung verwalten"
+
+#: src/ui/mod.rs
+msgid "API-Schlüssel ändern"
+msgstr "API-Schlüssel ändern"
+
+#: src/ui/mod.rs
+msgid "Verbindung entfernen"
+msgstr "Verbindung entfernen"
+
+#: src/ui/mod.rs
+msgid "Neue Sendung"
+msgstr "Neue Sendung"
+
+#: src/ui/mod.rs
+msgid "Aktive Sendungen"
+msgstr "Aktive Sendungen"
+
+#: src/ui/mod.rs
+msgid "Kürzlich"
+msgstr "Kürzlich"
+
+#: src/ui/mod.rs
+msgid "Noch offen"
+msgstr "Noch offen"
+
+#: src/ui/mod.rs
+msgid "Noch keine Ereignisse"
+msgstr "Noch keine Ereignisse"
+
+#: src/ui/mod.rs
+msgid "Parcel hat für diese Sendung noch keine Details bereitgestellt."
+msgstr "Parcel hat für diese Sendung noch keine Details bereitgestellt."
+
+#: src/ui/mod.rs
+msgid "Prototypmodus · Sichere Beispieldaten"
+msgstr "Prototypmodus · Sichere Beispieldaten"
+
+#: src/ui/mod.rs
+msgid "API verbinden"
+msgstr "API verbinden"
+
+#: src/ui/mod.rs
+msgid "Keine Sendungen vorhanden"
+msgstr "Keine Sendungen vorhanden"
+
+#: src/ui/mod.rs
+msgid "In deinem Parcel-Konto sind derzeit keine Sendungen gespeichert."
+msgstr "In deinem Parcel-Konto sind derzeit keine Sendungen gespeichert."
+
+#: src/ui/mod.rs
+msgid "Keine passenden Sendungen"
+msgstr "Keine passenden Sendungen"
+
+#: src/ui/mod.rs
+msgid "Für diesen Bereich gibt es momentan keine Sendungen."
+msgstr "Für diesen Bereich gibt es momentan keine Sendungen."
+
+#: src/ui/mod.rs
+msgid "Keine Suchtreffer"
+msgstr "Keine Suchtreffer"
+
+#: src/ui/mod.rs
+msgid "Versuche es mit einer anderen Beschreibung, Paketnummer oder einem Paketdienst."
+msgstr "Versuche es mit einer anderen Beschreibung, Paketnummer oder einem Paketdienst."
+
+#: src/ui/mod.rs
+msgid "Das Hinzufügen wird mit der sicheren API-Einrichtung aktiviert"
+msgstr "Das Hinzufügen wird mit der sicheren API-Einrichtung aktiviert"
+
+#: src/ui/mod.rs
+msgid "Der Offline-Speicher ist nicht verfügbar: {warning}"
+msgstr "Der Offline-Speicher ist nicht verfügbar: {warning}"
+
+#: src/ui/mod.rs
+msgid "GNOME-Schlüsselbund wird geprüft …"
+msgstr "GNOME-Schlüsselbund wird geprüft …"
+
+#: src/ui/mod.rs
+msgid "Parcel API-Schlüssel"
+msgstr "Parcel API-Schlüssel"
+
+#: src/ui/mod.rs
+msgid "API-Schlüssel in Parcel Web erzeugen"
+msgstr "API-Schlüssel in Parcel Web erzeugen"
+
+#: src/ui/mod.rs
+msgid "Mit Parcel verbinden"
+msgstr "Mit Parcel verbinden"
+
+#: src/ui/mod.rs
+msgid "Dein persönlicher Premium-API-Schlüssel wird ausschließlich im geschützten GNOME-Schlüsselbund gespeichert."
+msgstr "Dein persönlicher Premium-API-Schlüssel wird ausschließlich im geschützten GNOME-Schlüsselbund gespeichert."
+
+#: src/ui/mod.rs
+msgid "Abbrechen"
+msgstr "Abbrechen"
+
+#: src/ui/mod.rs
+msgid "Verbinden"
+msgstr "Verbinden"
+
+#: src/ui/mod.rs
+msgid "Live-Sendungen werden geladen …"
+msgstr "Live-Sendungen werden geladen …"
+
+#: src/ui/mod.rs
+msgid "Live-Daten geladen, aber nicht offline gespeichert: {error}"
+msgstr "Live-Daten geladen, aber nicht offline gespeichert: {error}"
+
+#: src/ui/mod.rs
+msgid "Live-Sendungen wurden aktualisiert"
+msgstr "Live-Sendungen wurden aktualisiert"
+
+#: src/ui/mod.rs
+msgid "Live-Daten geladen · Schlüssel nicht gespeichert"
+msgstr "Live-Daten geladen · Schlüssel nicht gespeichert"
+
+#: src/ui/mod.rs
+msgid "Erneut verbinden"
+msgstr "Erneut verbinden"
+
+#: src/ui/mod.rs
+msgid "Parcel konnte nicht aktualisiert werden"
+msgstr "Parcel konnte nicht aktualisiert werden"
+
+#: src/ui/mod.rs
+msgid "Verbindung prüfen"
+msgstr "Verbindung prüfen"
+
+#: src/ui/mod.rs
+msgid "Synchronisierung fehlgeschlagen: {error}"
+msgstr "Synchronisierung fehlgeschlagen: {error}"
+
+#: src/ui/mod.rs
+msgid "Die Synchronisierung wurde unerwartet beendet"
+msgstr "Die Synchronisierung wurde unerwartet beendet"
+
+#: src/ui/mod.rs
+msgid "Erneut versuchen"
+msgstr "Erneut versuchen"
+
+#: src/ui/mod.rs
+msgid "Die Live-Daten konnten nicht geladen werden"
+msgstr "Die Live-Daten konnten nicht geladen werden"
+
+#: src/ui/mod.rs
+msgid "Parcel-Verbindung entfernen?"
+msgstr "Parcel-Verbindung entfernen?"
+
+#: src/ui/mod.rs
+msgid "Der API-Schlüssel wird aus dem GNOME-Schlüsselbund gelöscht. Du kannst dich jederzeit wieder verbinden."
+msgstr "Der API-Schlüssel wird aus dem GNOME-Schlüsselbund gelöscht. Du kannst dich jederzeit wieder verbinden."
+
+#: src/ui/mod.rs
+msgid "Entfernen"
+msgstr "Entfernen"
+
+#: src/ui/mod.rs
+msgid "Der Offline-Speicher antwortet nicht."
+msgstr "Der Offline-Speicher antwortet nicht."
+
+#: src/ui/mod.rs
+msgid "Der Offline-Speicher war beim Start nicht verfügbar; lokale Sendungsdaten konnten nicht entfernt werden."
+msgstr "Der Offline-Speicher war beim Start nicht verfügbar; lokale Sendungsdaten konnten nicht entfernt werden."
+
+#: src/ui/mod.rs
+msgid "Parcel-Verbindung wurde entfernt"
+msgstr "Parcel-Verbindung wurde entfernt"
+
+#: src/ui/mod.rs
+msgid "Offline-Daten nicht entfernt: {warning}"
+msgstr "Offline-Daten nicht entfernt: {warning}"
+
+#: src/ui/mod.rs
+msgid "Offline · Zuletzt gespeicherte Sendungen"
+msgstr "Offline · Zuletzt gespeicherte Sendungen"
+
+#: src/ui/mod.rs
+msgid "Offline verfügbar"
+msgstr "Offline verfügbar"
+
+#: src/ui/mod.rs
+msgid "Der zuletzt gespeicherte Parcel-Stand wird angezeigt."
+msgstr "Der zuletzt gespeicherte Parcel-Stand wird angezeigt."
+
+#: src/ui/mod.rs
+msgid "PARCEL PREMIUM"
+msgstr "PARCEL PREMIUM"
+
+#: src/ui/mod.rs
+msgid "Meine Sendungen"
+msgstr "Meine Sendungen"
+
+#: src/ui/mod.rs
+msgid "Aktiv"
+msgstr "Aktiv"
+
+#: src/ui/mod.rs
+msgid "Noch nicht verbunden"
+msgstr "Noch nicht verbunden"
+
+#: src/ui/mod.rs
+msgid "Dein API-Schlüssel wird später sicher im GNOME-Schlüsselbund gespeichert."
+msgstr "Dein API-Schlüssel wird später sicher im GNOME-Schlüsselbund gespeichert."
+
+#: src/ui/mod.rs
+msgid "Mit Parcel verbunden"
+msgstr "Mit Parcel verbunden"
+
+#: src/ui/mod.rs
+msgid "Der API-Schlüssel liegt geschützt im GNOME-Schlüsselbund."
+msgstr "Der API-Schlüssel liegt geschützt im GNOME-Schlüsselbund."
+
+#: src/ui/mod.rs
+msgid "Verbinde dein Parcel-Premium-Konto, um Live-Daten zu laden."
+msgstr "Verbinde dein Parcel-Premium-Konto, um Live-Daten zu laden."
+
+#: src/ui/mod.rs
+msgid "Offen"
+msgstr "Offen"
+
+#: src/ui/mod.rs
+msgid "Weitere Optionen"
+msgstr "Weitere Optionen"
+
+#: src/ui/mod.rs
+msgid "In Parcel Web öffnen"
+msgstr "In Parcel Web öffnen"
+
+#: src/ui/mod.rs
+msgid "VORAUSSICHTLICH"
+msgstr "VORAUSSICHTLICH"
+
+#: src/ui/mod.rs
+msgid "SENDUNGSNUMMER"
+msgstr "SENDUNGSNUMMER"
+
+#: src/ui/mod.rs
+msgid "Sendungsnummer kopieren"
+msgstr "Sendungsnummer kopieren"
+
+#: src/ui/mod.rs
+msgid "Sendungsverlauf"
+msgstr "Sendungsverlauf"
+
+#: src/ui/mod.rs
+msgid "LIVE"
+msgstr "LIVE"
+
+#: src/ui/mod.rs
+msgid "Keine Sendung ausgewählt"
+msgstr "Keine Sendung ausgewählt"
+
+#: src/ui/mod.rs
+msgid "Wähle links eine Sendung aus, um ihren Verlauf zu sehen."
+msgstr "Wähle links eine Sendung aus, um ihren Verlauf zu sehen."
+
+#: src/ui/mod.rs
+msgid "Sendungsnummer kopiert"
+msgstr "Sendungsnummer kopiert"
+
+#: src/model.rs
+msgid "Zugestellt"
+msgstr "Zugestellt"
+
+#: src/model.rs
+msgid "Keine Aktualisierung"
+msgstr "Keine Aktualisierung"
+
+#: src/model.rs
+msgid "Unterwegs"
+msgstr "Unterwegs"
+
+#: src/model.rs
+msgid "Abholbereit"
+msgstr "Abholbereit"
+
+#: src/model.rs
+msgid "In Zustellung"
+msgstr "In Zustellung"
+
+#: src/model.rs
+msgid "Nicht gefunden"
+msgstr "Nicht gefunden"
+
+#: src/model.rs
+msgid "Zustellversuch fehlgeschlagen"
+msgstr "Zustellversuch fehlgeschlagen"
+
+#: src/model.rs
+msgid "Aufmerksamkeit erforderlich"
+msgstr "Aufmerksamkeit erforderlich"
+
+#: src/model.rs
+msgid "Elektronisch angekündigt"
+msgstr "Elektronisch angekündigt"
+
+#: src/model.rs
+msgid "Unbekannter Status"
+msgstr "Unbekannter Status"
+
+#: src/api/types.rs
+msgid "Noch keine Aktualisierung"
+msgstr "Noch keine Aktualisierung"
+
+#: src/notifications.rs
+msgid "Öffne Ankunft, um die Änderungen anzusehen."
+msgstr "Öffne Ankunft, um die Änderungen anzusehen."
+
+#: src/notifications.rs
+msgid "Sendung zugestellt"
+msgstr "Sendung zugestellt"
+
+#: src/notifications.rs
+msgid "Eine Sendung wurde erfolgreich zugestellt."
+msgstr "Eine Sendung wurde erfolgreich zugestellt."
+
+#: src/notifications.rs
+msgid "Sendung abholbereit"
+msgstr "Sendung abholbereit"
+
+#: src/notifications.rs
+msgid "Eine Sendung wartet auf ihre Abholung."
+msgstr "Eine Sendung wartet auf ihre Abholung."
+
+#: src/notifications.rs
+msgid "Sendung in Zustellung"
+msgstr "Sendung in Zustellung"
+
+#: src/notifications.rs
+msgid "Eine Sendung ist auf dem Weg zur Zustelladresse."
+msgstr "Eine Sendung ist auf dem Weg zur Zustelladresse."
+
+#: src/notifications.rs
+msgid "Eine Sendung konnte nicht zugestellt werden."
+msgstr "Eine Sendung konnte nicht zugestellt werden."
+
+#: src/notifications.rs
+msgid "Problem bei einer Sendung"
+msgstr "Problem bei einer Sendung"
+
+#: src/notifications.rs
+msgid "Eine Sendung benötigt möglicherweise Aufmerksamkeit."
+msgstr "Eine Sendung benötigt möglicherweise Aufmerksamkeit."
+
+#: src/secrets.rs
+msgid "Ankunft – Parcel API-Schlüssel"
+msgstr "Ankunft – Parcel API-Schlüssel"
+
+#: src/secrets.rs
+msgid "Der API-Schlüssel ist leer oder enthält ungültige Zeichen."
+msgstr "Der API-Schlüssel ist leer oder enthält ungültige Zeichen."
+
+#: src/secrets.rs
+msgid "Der gespeicherte API-Schlüssel hat ein ungültiges Format."
+msgstr "Der gespeicherte API-Schlüssel hat ein ungültiges Format."
+
+#: src/secrets.rs
+msgid "Der Zugriff auf den Schlüsselbund wurde abgebrochen."
+msgstr "Der Zugriff auf den Schlüsselbund wurde abgebrochen."
+
+#: src/secrets.rs
+msgid "Der GNOME-Schlüsselbund ist gesperrt."
+msgstr "Der GNOME-Schlüsselbund ist gesperrt."
+
+#: src/secrets.rs
+msgid "Der Zugriff auf den GNOME-Schlüsselbund wurde verweigert."
+msgstr "Der Zugriff auf den GNOME-Schlüsselbund wurde verweigert."
+
+#: src/secrets.rs
+msgid "Der GNOME-Schlüsselbund ist nicht verfügbar."
+msgstr "Der GNOME-Schlüsselbund ist nicht verfügbar."
+
+#: src/secrets.rs
+msgid "Der GNOME-Schlüsselbund hat einen nicht unterstützten Eintrag geliefert."
+msgstr "Der GNOME-Schlüsselbund hat einen nicht unterstützten Eintrag geliefert."
+
+#: src/secrets.rs
+msgid "Der API-Schlüssel konnte nicht sicher verarbeitet werden."
+msgstr "Der API-Schlüssel konnte nicht sicher verarbeitet werden."
+
+#: src/api/client.rs
+msgid "Das lokale Abruflimit ist erreicht. Bitte später erneut versuchen."
+msgstr "Das lokale Abruflimit ist erreicht. Bitte später erneut versuchen."
+
+#: src/api/client.rs
+msgid "Der lokale Schutz des Parcel-API-Limits ist nicht verfügbar: {0}"
+msgstr "Der lokale Schutz des Parcel-API-Limits ist nicht verfügbar: {0}"
+
+#: src/api/client.rs
+msgid "Der API-Schlüssel hat kein gültiges HTTP-Headerformat."
+msgstr "Der API-Schlüssel hat kein gültiges HTTP-Headerformat."
+
+#: src/api/client.rs
+msgid "Parcel hat die Anfrage abgelehnt: {0}"
+msgstr "Parcel hat die Anfrage abgelehnt: {0}"
+
+#: src/api/client.rs
+msgid "Netzwerkfehler: {0}"
+msgstr "Netzwerkfehler: {0}"
+
+#: src/api/client.rs
+msgid "Unbekannter API-Fehler"
+msgstr "Unbekannter API-Fehler"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher konnte nicht gelesen oder geschrieben werden: {0}"
+msgstr "Der lokale Sendungsspeicher konnte nicht gelesen oder geschrieben werden: {0}"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher ist beschädigt: {0}"
+msgstr "Der lokale Sendungsspeicher ist beschädigt: {0}"
+
+#: src/storage.rs
+msgid "Die Cache-Version {found} wird von dieser Version von Ankunft nicht unterstützt (erwartet: {expected})."
+msgstr "Die Cache-Version {found} wird von dieser Version von Ankunft nicht unterstützt (erwartet: {expected})."
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher ist ungewöhnlich groß ({size} Bytes)."
+msgstr "Der lokale Sendungsspeicher ist ungewöhnlich groß ({size} Bytes)."
+
+#: src/storage.rs
+msgid "Der private Speicherpfad ist kein reguläres Verzeichnis: {0}"
+msgstr "Der private Speicherpfad ist kein reguläres Verzeichnis: {0}"
+
+#: src/storage.rs
+msgid "Die Cache-Datei ist keine reguläre Datei: {0}"
+msgstr "Die Cache-Datei ist keine reguläre Datei: {0}"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher ist intern gesperrt."
+msgstr "Der lokale Sendungsspeicher ist intern gesperrt."
+
+#: src/rate_limit.rs
+msgid "Abruf"
+msgstr "Abruf"
+
+#: src/rate_limit.rs
+msgid "Hinzufügen"
+msgstr "Hinzufügen"
+
+#: src/rate_limit.rs
+msgid "Das lokale Limit für {kind} ist erreicht. Der nächste Versuch ist ab Unix-Zeit {retry_at_unix_secs} möglich."
+msgstr "Das lokale Limit für {kind} ist erreicht. Der nächste Versuch ist ab Unix-Zeit {retry_at_unix_secs} möglich."
+
+#: src/rate_limit.rs
+msgid "Die Systemzeit liegt vor dem Unix-Zeitbeginn."
+msgstr "Die Systemzeit liegt vor dem Unix-Zeitbeginn."
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler konnte nicht gelesen oder geschrieben werden: {0}"
+msgstr "Der lokale API-Zähler konnte nicht gelesen oder geschrieben werden: {0}"
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler ist beschädigt: {0}"
+msgstr "Der lokale API-Zähler ist beschädigt: {0}"
+
+#: src/rate_limit.rs
+msgid "Die Zähler-Version {found} wird von dieser Version von Ankunft nicht unterstützt (erwartet: {expected})."
+msgstr "Die Zähler-Version {found} wird von dieser Version von Ankunft nicht unterstützt (erwartet: {expected})."
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler ist inkonsistent: {0}"
+msgstr "Der lokale API-Zähler ist inkonsistent: {0}"
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler ist ungewöhnlich groß ({size} Bytes)."
+msgstr "Der lokale API-Zähler ist ungewöhnlich groß ({size} Bytes)."
+
+#: src/rate_limit.rs
+msgid "Die Zähler-Datei ist keine reguläre Datei: {0}"
+msgstr "Die Zähler-Datei ist keine reguläre Datei: {0}"
+
+#: src/rate_limit.rs
+msgid "Der lokale API-Zähler ist intern gesperrt."
+msgstr "Der lokale API-Zähler ist intern gesperrt."
+
+#: src/rate_limit.rs
+msgid "zu viele gespeicherte Leseversuche"
+msgstr "zu viele gespeicherte Leseversuche"
+
+#: src/rate_limit.rs
+msgid "zu viele gespeicherte Hinzufügeversuche"
+msgstr "zu viele gespeicherte Hinzufügeversuche"
+
+#: src/rate_limit.rs
+msgid "Versuche ohne letzten Zeitbezug"
+msgstr "Versuche ohne letzten Zeitbezug"
+
+#: src/rate_limit.rs
+msgid "Zeitstempel sind nicht sortiert"
+msgstr "Zeitstempel sind nicht sortiert"
+
+#: src/rate_limit.rs
+msgid "Versuch liegt nach der zuletzt beobachteten Zeit"
+msgstr "Versuch liegt nach der zuletzt beobachteten Zeit"
+
+#: src/model.rs
+msgid "Österreichische Post"
+msgstr "Österreichische Post"
+
+#: src/model.rs
+msgid "AirPods Zubehör"
+msgstr "AirPods Zubehör"
+
+#: src/model.rs
+msgid "Heute"
+msgstr "Heute"
+
+#: src/model.rs
+msgid "zwischen 12:10 und 14:40 Uhr"
+msgstr "zwischen 12:10 und 14:40 Uhr"
+
+#: src/model.rs
+msgid "Vor 18 Minuten"
+msgstr "Vor 18 Minuten"
+
+#: src/model.rs
+msgid "Sendung ist in Zustellung"
+msgstr "Sendung ist in Zustellung"
+
+#: src/model.rs
+msgid "Heute, 08:12"
+msgstr "Heute, 08:12"
+
+#: src/model.rs
+msgid "Wien"
+msgstr "Wien"
+
+#: src/model.rs
+msgid "Die Zustellung erfolgt voraussichtlich heute."
+msgstr "Die Zustellung erfolgt voraussichtlich heute."
+
+#: src/model.rs
+msgid "Im Verteilzentrum bearbeitet"
+msgstr "Im Verteilzentrum bearbeitet"
+
+#: src/model.rs
+msgid "Heute, 05:46"
+msgstr "Heute, 05:46"
+
+#: src/model.rs
+msgid "Logistikzentrum Wien"
+msgstr "Logistikzentrum Wien"
+
+#: src/model.rs
+msgid "Sendung übernommen"
+msgstr "Sendung übernommen"
+
+#: src/model.rs
+msgid "Gestern, 17:20"
+msgstr "Gestern, 17:20"
+
+#: src/model.rs
+msgid "Linz"
+msgstr "Linz"
+
+#: src/model.rs
+msgid "Kaffeebohnen"
+msgstr "Kaffeebohnen"
+
+#: src/model.rs
+msgid "Morgen"
+msgstr "Morgen"
+
+#: src/model.rs
+msgid "bis zum Ende des Tages"
+msgstr "bis zum Ende des Tages"
+
+#: src/model.rs
+msgid "Vor 2 Stunden"
+msgstr "Vor 2 Stunden"
+
+#: src/model.rs
+msgid "Unterwegs zum Zieldepot"
+msgstr "Unterwegs zum Zieldepot"
+
+#: src/model.rs
+msgid "Heute, 06:32"
+msgstr "Heute, 06:32"
+
+#: src/model.rs
+msgid "Hörsching"
+msgstr "Hörsching"
+
+#: src/model.rs
+msgid "Paket im DPD-System erfasst"
+msgstr "Paket im DPD-System erfasst"
+
+#: src/model.rs
+msgid "Gestern, 16:05"
+msgstr "Gestern, 16:05"
+
+#: src/model.rs
+msgid "Bücherbestellung"
+msgstr "Bücherbestellung"
+
+#: src/model.rs
+msgid "noch 4 Tage im PaketShop"
+msgstr "noch 4 Tage im PaketShop"
+
+#: src/model.rs
+msgid "Gestern"
+msgstr "Gestern"
+
+#: src/model.rs
+msgid "Im GLS PaketShop abholbereit"
+msgstr "Im GLS PaketShop abholbereit"
+
+#: src/model.rs
+msgid "Gestern, 15:41"
+msgstr "Gestern, 15:41"
+
+#: src/model.rs
+msgid "Wien 7"
+msgstr "Wien 7"
+
+#: src/model.rs
+msgid "Bitte Lichtbildausweis mitnehmen."
+msgstr "Bitte Lichtbildausweis mitnehmen."
+
+#: src/model.rs
+msgid "Zustellung nicht möglich"
+msgstr "Zustellung nicht möglich"
+
+#: src/model.rs
+msgid "Gestern, 13:18"
+msgstr "Gestern, 13:18"
+
+#: src/model.rs
+msgid "Entwicklerboard"
+msgstr "Entwicklerboard"
+
+#: src/model.rs
+msgid "Freitag"
+msgstr "Freitag"
+
+#: src/model.rs
+msgid "Termin wird noch bestätigt"
+msgstr "Termin wird noch bestätigt"
+
+#: src/model.rs
+msgid "Sendungsinformation eingegangen"
+msgstr "Sendungsinformation eingegangen"
+
+#: src/model.rs
+msgid "Gestern, 11:24"
+msgstr "Gestern, 11:24"
+
+#: src/model.rs
+msgid "Die Sendung wurde noch nicht an DHL übergeben."
+msgstr "Die Sendung wurde noch nicht an DHL übergeben."
+
+#: src/model.rs
+msgid "Monitorarm"
+msgstr "Monitorarm"
+
+#: src/model.rs
+msgid "Montag um 10:17 Uhr"
+msgstr "Montag um 10:17 Uhr"
+
+#: src/model.rs
+msgid "Montag"
+msgstr "Montag"
+
+#: src/model.rs
+msgid "Montag, 10:17"
+msgstr "Montag, 10:17"
+
+#: src/model.rs
+msgid "Beim Empfänger abgegeben."
+msgstr "Beim Empfänger abgegeben."
+
+#: src/model.rs
+msgid "Montag, 07:31"
+msgstr "Montag, 07:31"
+
+#: src/notifications.rs
+msgid "{} wichtige Sendungsänderung"
+msgid_plural "{} wichtige Sendungsänderungen"
+msgstr[0] "{} wichtige Sendungsänderung"
+msgstr[1] "{} wichtige Sendungsänderungen"

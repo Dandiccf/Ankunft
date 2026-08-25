@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::i18n::tr;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeliveryStatus {
     Delivered,
@@ -30,8 +32,8 @@ impl DeliveryStatus {
         }
     }
 
-    pub fn label(self) -> &'static str {
-        match self {
+    pub fn label(self) -> String {
+        tr(match self {
             Self::Delivered => "Zugestellt",
             Self::Frozen => "Keine Aktualisierung",
             Self::InTransit => "Unterwegs",
@@ -42,7 +44,7 @@ impl DeliveryStatus {
             Self::Exception => "Aufmerksamkeit erforderlich",
             Self::InformationReceived => "Elektronisch angekündigt",
             Self::Unknown(_) => "Unbekannter Status",
-        }
+        })
     }
 
     pub fn css_class(self) -> &'static str {
@@ -134,33 +136,33 @@ pub fn demo_deliveries() -> Vec<Delivery> {
     vec![
         Delivery {
             carrier_code: "at".into(),
-            carrier_name: "Österreichische Post".into(),
-            description: "AirPods Zubehör".into(),
+            carrier_name: tr("Österreichische Post"),
+            description: tr("AirPods Zubehör"),
             tracking_number: "AT •••• 4821".into(),
             status: DeliveryStatus::OutForDelivery,
-            expected: Some("Heute".into()),
-            expected_detail: Some("zwischen 12:10 und 14:40 Uhr".into()),
+            expected: Some(tr("Heute")),
+            expected_detail: Some(tr("zwischen 12:10 und 14:40 Uhr")),
             expected_timestamp: None,
             expected_end_timestamp: None,
             extra_information: None,
-            last_update: "Vor 18 Minuten".into(),
+            last_update: tr("Vor 18 Minuten"),
             events: vec![
                 DeliveryEvent {
-                    title: "Sendung ist in Zustellung".into(),
-                    date: "Heute, 08:12".into(),
-                    location: Some("Wien".into()),
-                    additional: Some("Die Zustellung erfolgt voraussichtlich heute.".into()),
+                    title: tr("Sendung ist in Zustellung"),
+                    date: tr("Heute, 08:12"),
+                    location: Some(tr("Wien")),
+                    additional: Some(tr("Die Zustellung erfolgt voraussichtlich heute.")),
                 },
                 DeliveryEvent {
-                    title: "Im Verteilzentrum bearbeitet".into(),
-                    date: "Heute, 05:46".into(),
-                    location: Some("Logistikzentrum Wien".into()),
+                    title: tr("Im Verteilzentrum bearbeitet"),
+                    date: tr("Heute, 05:46"),
+                    location: Some(tr("Logistikzentrum Wien")),
                     additional: None,
                 },
                 DeliveryEvent {
-                    title: "Sendung übernommen".into(),
-                    date: "Gestern, 17:20".into(),
-                    location: Some("Linz".into()),
+                    title: tr("Sendung übernommen"),
+                    date: tr("Gestern, 17:20"),
+                    location: Some(tr("Linz")),
                     additional: None,
                 },
             ],
@@ -168,25 +170,25 @@ pub fn demo_deliveries() -> Vec<Delivery> {
         Delivery {
             carrier_code: "dpdat".into(),
             carrier_name: "DPD Austria".into(),
-            description: "Kaffeebohnen".into(),
+            description: tr("Kaffeebohnen"),
             tracking_number: "DPD •••• 7604".into(),
             status: DeliveryStatus::InTransit,
-            expected: Some("Morgen".into()),
-            expected_detail: Some("bis zum Ende des Tages".into()),
+            expected: Some(tr("Morgen")),
+            expected_detail: Some(tr("bis zum Ende des Tages")),
             expected_timestamp: None,
             expected_end_timestamp: None,
             extra_information: None,
-            last_update: "Vor 2 Stunden".into(),
+            last_update: tr("Vor 2 Stunden"),
             events: vec![
                 DeliveryEvent {
-                    title: "Unterwegs zum Zieldepot".into(),
-                    date: "Heute, 06:32".into(),
-                    location: Some("Hörsching".into()),
+                    title: tr("Unterwegs zum Zieldepot"),
+                    date: tr("Heute, 06:32"),
+                    location: Some(tr("Hörsching")),
                     additional: None,
                 },
                 DeliveryEvent {
-                    title: "Paket im DPD-System erfasst".into(),
-                    date: "Gestern, 16:05".into(),
+                    title: tr("Paket im DPD-System erfasst"),
+                    date: tr("Gestern, 16:05"),
                     location: None,
                     additional: None,
                 },
@@ -195,26 +197,26 @@ pub fn demo_deliveries() -> Vec<Delivery> {
         Delivery {
             carrier_code: "gls".into(),
             carrier_name: "GLS".into(),
-            description: "Bücherbestellung".into(),
+            description: tr("Bücherbestellung"),
             tracking_number: "GLS •••• 1938".into(),
             status: DeliveryStatus::ReadyForPickup,
-            expected: Some("Abholbereit".into()),
-            expected_detail: Some("noch 4 Tage im PaketShop".into()),
+            expected: Some(tr("Abholbereit")),
+            expected_detail: Some(tr("noch 4 Tage im PaketShop")),
             expected_timestamp: None,
             expected_end_timestamp: None,
             extra_information: None,
-            last_update: "Gestern".into(),
+            last_update: tr("Gestern"),
             events: vec![
                 DeliveryEvent {
-                    title: "Im GLS PaketShop abholbereit".into(),
-                    date: "Gestern, 15:41".into(),
-                    location: Some("Wien 7".into()),
-                    additional: Some("Bitte Lichtbildausweis mitnehmen.".into()),
+                    title: tr("Im GLS PaketShop abholbereit"),
+                    date: tr("Gestern, 15:41"),
+                    location: Some(tr("Wien 7")),
+                    additional: Some(tr("Bitte Lichtbildausweis mitnehmen.")),
                 },
                 DeliveryEvent {
-                    title: "Zustellung nicht möglich".into(),
-                    date: "Gestern, 13:18".into(),
-                    location: Some("Wien".into()),
+                    title: tr("Zustellung nicht möglich"),
+                    date: tr("Gestern, 13:18"),
+                    location: Some(tr("Wien")),
                     additional: None,
                 },
             ],
@@ -222,45 +224,45 @@ pub fn demo_deliveries() -> Vec<Delivery> {
         Delivery {
             carrier_code: "dhl".into(),
             carrier_name: "DHL Express".into(),
-            description: "Entwicklerboard".into(),
+            description: tr("Entwicklerboard"),
             tracking_number: "DHL •••• 5092".into(),
             status: DeliveryStatus::InformationReceived,
-            expected: Some("Freitag".into()),
-            expected_detail: Some("Termin wird noch bestätigt".into()),
+            expected: Some(tr("Freitag")),
+            expected_detail: Some(tr("Termin wird noch bestätigt")),
             expected_timestamp: None,
             expected_end_timestamp: None,
             extra_information: None,
-            last_update: "Gestern".into(),
+            last_update: tr("Gestern"),
             events: vec![DeliveryEvent {
-                title: "Sendungsinformation eingegangen".into(),
-                date: "Gestern, 11:24".into(),
+                title: tr("Sendungsinformation eingegangen"),
+                date: tr("Gestern, 11:24"),
                 location: None,
-                additional: Some("Die Sendung wurde noch nicht an DHL übergeben.".into()),
+                additional: Some(tr("Die Sendung wurde noch nicht an DHL übergeben.")),
             }],
         },
         Delivery {
             carrier_code: "ups".into(),
             carrier_name: "UPS".into(),
-            description: "Monitorarm".into(),
+            description: tr("Monitorarm"),
             tracking_number: "UPS •••• 0447".into(),
             status: DeliveryStatus::Delivered,
-            expected: Some("Zugestellt".into()),
-            expected_detail: Some("Montag um 10:17 Uhr".into()),
+            expected: Some(tr("Zugestellt")),
+            expected_detail: Some(tr("Montag um 10:17 Uhr")),
             expected_timestamp: None,
             expected_end_timestamp: None,
             extra_information: None,
-            last_update: "Montag".into(),
+            last_update: tr("Montag"),
             events: vec![
                 DeliveryEvent {
-                    title: "Zugestellt".into(),
-                    date: "Montag, 10:17".into(),
-                    location: Some("Wien".into()),
-                    additional: Some("Beim Empfänger abgegeben.".into()),
+                    title: tr("Zugestellt"),
+                    date: tr("Montag, 10:17"),
+                    location: Some(tr("Wien")),
+                    additional: Some(tr("Beim Empfänger abgegeben.")),
                 },
                 DeliveryEvent {
-                    title: "In Zustellung".into(),
-                    date: "Montag, 07:31".into(),
-                    location: Some("Wien".into()),
+                    title: tr("In Zustellung"),
+                    date: tr("Montag, 07:31"),
+                    location: Some(tr("Wien")),
                     additional: None,
                 },
             ],
@@ -290,8 +292,8 @@ mod tests {
     fn searches_description_carrier_and_tracking_number() {
         let delivery = &demo_deliveries()[0];
         assert!(delivery.matches_query("airpods"));
-        assert!(delivery.matches_query("post"));
+        assert!(delivery.matches_query(&tr("Österreichische Post")));
         assert!(delivery.matches_query("4821"));
-        assert!(!delivery.matches_query("kaffeebohnen"));
+        assert!(!delivery.matches_query("definitely-not-a-delivery"));
     }
 }
