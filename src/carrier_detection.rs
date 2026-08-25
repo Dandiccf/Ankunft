@@ -146,11 +146,7 @@ fn preferred_amazon_codes(locale: &str) -> Vec<&'static str> {
 
 fn s10_postal_carrier(number: &str) -> Option<&'static str> {
     let bytes = number.as_bytes();
-    if bytes.len() != 13
-        || !bytes[..2].iter().all(u8::is_ascii_uppercase)
-        || !bytes[2..11].iter().all(u8::is_ascii_digit)
-        || !bytes[11..].iter().all(u8::is_ascii_uppercase)
-    {
+    if !has_s10_shape(number) {
         return None;
     }
 
@@ -229,6 +225,14 @@ fn s10_postal_carrier(number: &str) -> Option<&'static str> {
     }
 }
 
+fn has_s10_shape(number: &str) -> bool {
+    let bytes = number.as_bytes();
+    bytes.len() == 13
+        && bytes[..2].iter().all(u8::is_ascii_uppercase)
+        && bytes[2..11].iter().all(u8::is_ascii_digit)
+        && bytes[11..].iter().all(u8::is_ascii_uppercase)
+}
+
 fn is_usps_numeric(number: &str) -> bool {
     matches!(number.len(), 20..=22)
         && number.bytes().all(|byte| byte.is_ascii_digit())
@@ -236,6 +240,12 @@ fn is_usps_numeric(number: &str) -> bool {
 }
 
 fn is_dhl_alphanumeric(number: &str) -> bool {
+    // A mistyped international S10 postal number must not fall through into
+    // DHL merely because service prefixes such as LX or RX overlap.
+    if has_s10_shape(number) {
+        return false;
+    }
+
     let dhl_piece = (number.starts_with("JJD") && matches!(number.len(), 12..=13))
         || (number.starts_with("JVGL") && matches!(number.len(), 13..=14));
     if dhl_piece {
@@ -323,6 +333,7 @@ mod tests {
     fn recognizes_s10_and_uses_issuing_postal_operator() {
         assert_eq!(suggest_carrier_codes("CA482156820DE", "de_AT"), vec!["dp"]);
         assert!(suggest_carrier_codes("CA482156821DE", "de_AT").is_empty());
+        assert!(suggest_carrier_codes("LX123456789CN", "de_AT").is_empty());
     }
 
     #[test]
