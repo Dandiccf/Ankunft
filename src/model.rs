@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
 use crate::i18n::tr;
@@ -130,6 +132,51 @@ impl Delivery {
             || self.carrier_name.to_lowercase().contains(&query)
             || self.tracking_number.to_lowercase().contains(&query)
     }
+}
+
+const MAX_RECENT_DELIVERIES: usize = 200;
+
+/// Combines a freshly fetched Recent view with delivered entries retained in
+/// the previous local snapshot.
+///
+/// Fresh API entries always win. Their order is preserved, duplicate API
+/// entries are removed, and only previously delivered entries that are absent
+/// from the API response are appended. The retained archive never grows the
+/// result beyond 200 entries, unless the unique API response itself is larger.
+pub(crate) fn merge_delivered_history(
+    current: Vec<Delivery>,
+    previous: &[Delivery],
+) -> Vec<Delivery> {
+    let mut seen = HashSet::with_capacity(current.len().saturating_add(previous.len()));
+    let mut merged = Vec::with_capacity(current.len().min(MAX_RECENT_DELIVERIES));
+
+    for delivery in current {
+        if seen.insert(delivery_key(&delivery)) {
+            merged.push(delivery);
+        }
+    }
+
+    for delivery in previous
+        .iter()
+        .filter(|delivery| delivery.status == DeliveryStatus::Delivered)
+    {
+        if merged.len() >= MAX_RECENT_DELIVERIES {
+            break;
+        }
+
+        if seen.insert(delivery_key(delivery)) {
+            merged.push(delivery.clone());
+        }
+    }
+
+    merged
+}
+
+fn delivery_key(delivery: &Delivery) -> (String, String) {
+    (
+        delivery.carrier_code.trim().to_owned(),
+        delivery.tracking_number.trim().to_owned(),
+    )
 }
 
 pub fn demo_deliveries() -> Vec<Delivery> {
@@ -274,6 +321,28 @@ pub fn demo_deliveries() -> Vec<Delivery> {
 mod tests {
     use super::*;
 
+    fn delivery(
+        carrier: &str,
+        tracking: &str,
+        status: DeliveryStatus,
+        description: &str,
+    ) -> Delivery {
+        Delivery {
+            carrier_code: carrier.into(),
+            carrier_name: carrier.into(),
+            description: description.into(),
+            tracking_number: tracking.into(),
+            status,
+            expected: None,
+            expected_detail: None,
+            expected_timestamp: None,
+            expected_end_timestamp: None,
+            extra_information: None,
+            last_update: String::new(),
+            events: Vec::new(),
+        }
+    }
+
     #[test]
     fn maps_all_documented_status_codes() {
         for code in 0..=8 {
@@ -295,5 +364,82 @@ mod tests {
         assert!(delivery.matches_query(&tr("Österreichische Post")));
         assert!(delivery.matches_query("4821"));
         assert!(!delivery.matches_query("definitely-not-a-delivery"));
+    }
+
+    #[test]
+    fn merges_only_missing_delivered_history_and_current_data_wins() {
+        let current = vec![delivery("post", "same", DeliveryStatus::InTransit, "fresh")];
+        let previous = vec![
+            delivery("post", "same", DeliveryStatus::Delivered, "stale"),
+            delivery("dhl", "archive", DeliveryStatus::Delivered, "retained"),
+            delivery("ups", "active", DeliveryStatus::InTransit, "not retained"),
+        ];
+
+        let merged = merge_delivered_history(current, &previous);
+
+        assert_eq!(merged.len(), 2);
+        assert_eq!(merged[0].description, "fresh");
+        assert_eq!(merged[0].status, DeliveryStatus::InTransit);
+        assert_eq!(merged[1].tracking_number, "archive");
+    }
+
+    #[test]
+    fn removes_duplicate_current_and_archived_entries_by_delivery_key() {
+        let current = vec![
+            delivery("post", "one", DeliveryStatus::Delivered, "first"),
+            delivery("post", "one", DeliveryStatus::Delivered, "duplicate"),
+        ];
+        let previous = vec![
+            delivery("post", "one", DeliveryStatus::Delivered, "old"),
+            delivery(" dhl ", " two ", DeliveryStatus::Delivered, "archive"),
+            delivery("dhl", "two", DeliveryStatus::Delivered, "archive duplicate"),
+        ];
+
+        let merged = merge_delivered_history(current, &previous);
+
+        assert_eq!(merged.len(), 2);
+        assert_eq!(merged[0].description, "first");
+        assert_eq!(merged[1].description, "archive");
+    }
+
+    #[test]
+    fn caps_only_the_appended_archive_at_two_hundred_entries() {
+        let current = (0..198)
+            .map(|index| {
+                delivery(
+                    "current",
+                    &format!("current-{index}"),
+                    DeliveryStatus::InTransit,
+                    "current",
+                )
+            })
+            .collect();
+        let previous = (0..10)
+            .map(|index| {
+                delivery(
+                    "archive",
+                    &format!("archive-{index}"),
+                    DeliveryStatus::Delivered,
+                    "archive",
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let merged = merge_delivered_history(current, &previous);
+        assert_eq!(merged.len(), MAX_RECENT_DELIVERIES);
+        assert_eq!(merged[199].tracking_number, "archive-1");
+
+        let oversized_current = (0..205)
+            .map(|index| {
+                delivery(
+                    "current",
+                    &format!("oversized-{index}"),
+                    DeliveryStatus::InTransit,
+                    "current",
+                )
+            })
+            .collect();
+        let merged = merge_delivered_history(oversized_current, &previous);
+        assert_eq!(merged.len(), 205);
     }
 }

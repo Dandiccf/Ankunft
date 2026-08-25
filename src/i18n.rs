@@ -315,7 +315,7 @@ mod tests {
             let catalog = Catalog::from_mo((*locale).to_owned(), bytes)
                 .unwrap_or_else(|| panic!("invalid embedded catalog for {locale}"));
             assert_eq!(catalog.locale, *locale);
-            assert!(catalog.messages.len() >= 175);
+            assert!(catalog.messages.len() >= 199);
             let delivered = match *locale {
                 "de" => "Zugestellt",
                 "en" => "Delivered",
@@ -333,6 +333,20 @@ mod tests {
                 catalog
                     .messages
                     .contains_key("{} wichtige Sendungsänderung\0{} wichtige Sendungsänderungen")
+            );
+            let add_delivery = catalog
+                .messages
+                .get("Neue Sendung hinzufügen")
+                .unwrap_or_else(|| panic!("missing add-delivery translation for {locale}"));
+            assert!(!add_delivery.is_empty());
+            if *locale != "de" {
+                assert_ne!(add_delivery, "Neue Sendung hinzufügen");
+            }
+            assert!(
+                catalog
+                    .messages
+                    .get("Sendung konnte nicht hinzugefügt werden: {error}")
+                    .is_some_and(|translation| translation.contains("{error}"))
             );
         }
     }

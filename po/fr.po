@@ -714,3 +714,99 @@ msgid "{} wichtige Sendungsänderung"
 msgid_plural "{} wichtige Sendungsänderungen"
 msgstr[0] "{} mise à jour importante de livraison"
 msgstr[1] "{} mises à jour importantes de livraison"
+
+#: src/ui/mod.rs
+msgid "Zugestellte Sendungen"
+msgstr "Envois livrés"
+
+#: src/ui/mod.rs
+msgid "Noch keine zugestellten Sendungen"
+msgstr "Aucun envoi livré pour le moment"
+
+#: src/ui/mod.rs
+msgid "Parcel stellt nur kürzlich abgeschlossene Sendungen bereit. Ankunft bewahrt künftig lokal beobachtete Zustellungen auf diesem Gerät auf."
+msgstr "Parcel ne fournit que les envois récemment terminés. Désormais, Ankunft conservera sur cet appareil les livraisons suivies localement."
+
+#: src/ui/mod.rs
+msgid "Paketdienste werden geladen …"
+msgstr "Chargement des transporteurs …"
+
+#: src/ui/mod.rs
+msgid "Paketdienste konnten nicht geladen werden: {error}"
+msgstr "Impossible de charger les transporteurs : {error}"
+
+#: src/ui/mod.rs
+msgid "Die Paketdienstliste konnte nicht geladen werden."
+msgstr "La liste des transporteurs n’a pas pu être chargée."
+
+#: src/ui/mod.rs
+msgid "Verbinde zuerst dein Parcel-Konto, um eine Sendung hinzuzufügen."
+msgstr "Connectez d’abord votre compte Parcel pour ajouter un envoi."
+
+#: src/ui/mod.rs
+msgid "Parcel hat keine Paketdienste bereitgestellt."
+msgstr "Parcel n’a fourni aucun transporteur."
+
+#: src/ui/mod.rs
+msgid "Beschreibung"
+msgstr "Description"
+
+#: src/ui/mod.rs
+msgid "Sendungsnummer"
+msgstr "Numéro de suivi"
+
+#: src/ui/mod.rs
+msgid "Paketdienst"
+msgstr "Transporteur"
+
+#: src/ui/mod.rs
+msgid "Postleitzahl (optional)"
+msgstr "Code postal (facultatif)"
+
+#: src/ui/mod.rs
+msgid "E-Mail-Adresse (optional)"
+msgstr "Adresse e-mail (facultative)"
+
+#: src/ui/mod.rs
+msgid "Optionale Angaben"
+msgstr "Informations facultatives"
+
+#: src/ui/mod.rs
+msgid "Manche Paketdienste benötigen eine Postleitzahl oder E-Mail-Adresse."
+msgstr "Certains transporteurs exigent un code postal ou une adresse e-mail."
+
+#: src/ui/mod.rs
+msgid "Neue Sendung hinzufügen"
+msgstr "Ajouter un nouvel envoi"
+
+#: src/ui/mod.rs
+msgid "Parcel prüft die Sendungsnummer nach dem Absenden. Ungültige Versuche zählen zum täglichen API-Limit."
+msgstr "Parcel vérifiera le numéro de suivi après l’envoi. Les tentatives non valides sont décomptées de la limite quotidienne de l’API."
+
+#: src/ui/mod.rs
+msgid "Sendung wird hinzugefügt …"
+msgstr "Ajout de l’envoi …"
+
+#: src/ui/mod.rs
+msgid "Sendung wurde hinzugefügt. Trackingdaten können nach der ersten Parcel-Aktualisierung erscheinen."
+msgstr "L’envoi a été ajouté. Les données de suivi peuvent apparaître après la première mise à jour de Parcel."
+
+#: src/ui/mod.rs
+msgid "Sendung konnte nicht hinzugefügt werden: {error}"
+msgstr "Impossible d’ajouter l’envoi : {error}"
+
+#: src/ui/mod.rs
+msgid "Die Sendung konnte nicht hinzugefügt werden."
+msgstr "L’envoi n’a pas pu être ajouté."
+
+#: src/ui/mod.rs
+msgid "Bitte gib eine Sendungsnummer ein."
+msgstr "Veuillez saisir un numéro de suivi."
+
+#: src/ui/mod.rs
+msgid "Bitte wähle einen Paketdienst aus."
+msgstr "Veuillez sélectionner un transporteur."
+
+#: src/ui/mod.rs
+msgid "Bitte gib eine Beschreibung ein."
+msgstr "Veuillez saisir une description."

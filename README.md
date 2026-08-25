@@ -11,7 +11,11 @@ API.
 - unread-update badges on compatible GNOME docks, powered by native
   notifications
 - three-column delivery overview with search and status filters
+- dedicated delivered-shipment view with a private local history of completed
+  deliveries observed by Ankunft
 - detailed event timeline and delivery estimates
+- add-delivery assistant with a searchable carrier list and optional postcode
+  or email details
 - secure setup dialog for the personal Parcel API key
 - live synchronization outside the GTK main thread
 - API key storage exclusively in the GNOME Keyring
@@ -65,6 +69,6 @@ the signed-in user. The application does not include telemetry.
 
 ## Project status
 
-The next milestones are adding deliveries, scheduled background refresh,
-optional tray integration, and reproducible packaging. Ankunft is an
-independent project and is not affiliated with Parcel.
+The next milestones are scheduled background refresh, optional tray
+integration, local-history management, and reproducible packaging. Ankunft is
+an independent project and is not affiliated with Parcel.

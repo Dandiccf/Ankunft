@@ -10,9 +10,12 @@ use gtk::{Align, Orientation, gio};
 use secrecy::{ExposeSecret, SecretString};
 
 use crate::{
-    api::{ApiError, FilterMode, ParcelClient},
+    api::{
+        ApiError, FilterMode, NewDelivery, NewDeliveryDraft, ParcelClient,
+        SupportedCarriersResponse,
+    },
     i18n::{interpolate, tr},
-    model::{Delivery, DeliveryStatus, demo_deliveries},
+    model::{Delivery, DeliveryStatus, demo_deliveries, merge_delivered_history},
     notifications, secrets,
     storage::{DeliveryCache, SnapshotKind},
 };
@@ -33,6 +36,7 @@ enum DeliveryFilter {
     InTransit,
     OutForDelivery,
     ReadyForPickup,
+    Delivered,
     Recent,
 }
 
@@ -42,13 +46,31 @@ enum BannerAction {
     Retry,
 }
 
+#[derive(Clone)]
+struct CarrierChoice {
+    code: String,
+    name: String,
+}
+
 impl DeliveryFilter {
+    fn from_sidebar_index(index: i32) -> Self {
+        match index {
+            0 => Self::Active,
+            1 => Self::InTransit,
+            2 => Self::OutForDelivery,
+            3 => Self::ReadyForPickup,
+            4 => Self::Delivered,
+            _ => Self::Recent,
+        }
+    }
+
     fn title(self) -> String {
         tr(match self {
             Self::Active => "Aktive Sendungen",
             Self::InTransit => "Unterwegs",
             Self::OutForDelivery => "In Zustellung",
             Self::ReadyForPickup => "Abholbereit",
+            Self::Delivered => "Zugestellte Sendungen",
             Self::Recent => "Kürzlich",
         })
     }
@@ -62,6 +84,7 @@ impl DeliveryFilter {
             ),
             Self::OutForDelivery => status == DeliveryStatus::OutForDelivery,
             Self::ReadyForPickup => status == DeliveryStatus::ReadyForPickup,
+            Self::Delivered => status == DeliveryStatus::Delivered,
             Self::Recent => matches!(status, DeliveryStatus::Delivered | DeliveryStatus::Frozen),
         }
     }
@@ -310,6 +333,13 @@ pub fn build_window(app: &adw::Application) {
                 if let Some(index) = visible_indices.borrow().first() {
                     detail_view.update(&delivery_data[*index]);
                 }
+            } else if filter == DeliveryFilter::Delivered && query.trim().is_empty() {
+                detail_view.show_empty(
+                    &tr("Noch keine zugestellten Sendungen"),
+                    &tr(
+                        "Parcel stellt nur kürzlich abgeschlossene Sendungen bereit. Ankunft bewahrt künftig lokal beobachtete Zustellungen auf diesem Gerät auf.",
+                    ),
+                );
             } else if delivery_data.is_empty() {
                 detail_view.show_empty(
                     &tr("Keine Sendungen vorhanden"),
@@ -353,13 +383,7 @@ pub fn build_window(app: &adw::Application) {
             let Some(row) = row else {
                 return;
             };
-            let filter = match row.index() {
-                0 => DeliveryFilter::Active,
-                1 => DeliveryFilter::InTransit,
-                2 => DeliveryFilter::OutForDelivery,
-                3 => DeliveryFilter::ReadyForPickup,
-                _ => DeliveryFilter::Recent,
-            };
+            let filter = DeliveryFilter::from_sidebar_index(row.index());
             *current_filter.borrow_mut() = filter;
             rebuild();
         });
@@ -381,6 +405,7 @@ pub fn build_window(app: &adw::Application) {
         banner: connection_banner.clone(),
         toast_overlay: toast_overlay.clone(),
         refresh_button: refresh_button.clone(),
+        add_button: add_button.clone(),
         rebuild: rebuild.clone(),
         loading: Rc::new(Cell::new(false)),
         dialog_open: Rc::new(Cell::new(false)),
@@ -399,11 +424,10 @@ pub fn build_window(app: &adw::Application) {
     }
 
     {
-        let toast_overlay = toast_overlay.clone();
+        let window = window.clone();
+        let live_ui = live_ui.clone();
         add_button.connect_clicked(move |_| {
-            toast_overlay.add_toast(adw::Toast::new(&tr(
-                "Das Hinzufügen wird mit der sicheren API-Einrichtung aktiviert",
-            )));
+            begin_add_delivery(&window, &live_ui);
         });
     }
 
@@ -460,6 +484,7 @@ struct LiveUi {
     banner: adw::Banner,
     toast_overlay: adw::ToastOverlay,
     refresh_button: gtk::Button,
+    add_button: gtk::Button,
     rebuild: Rc<dyn Fn()>,
     loading: Rc<Cell<bool>>,
     dialog_open: Rc<Cell<bool>>,
@@ -566,6 +591,324 @@ fn cached_snapshot_is_fresh(ui: &LiveUi) -> bool {
         .is_some_and(|age| age < AUTOMATIC_REFRESH_INTERVAL_SECS)
 }
 
+fn begin_add_delivery(parent: &adw::ApplicationWindow, ui: &LiveUi) {
+    if ui.dialog_open.get() || ui.loading.replace(true) {
+        return;
+    }
+
+    ui.refresh_button.set_sensitive(false);
+    ui.add_button.set_sensitive(false);
+    ui.banner.set_title(&tr("Paketdienste werden geladen …"));
+    ui.banner.set_button_label(None);
+    ui.banner.set_revealed(true);
+
+    let parent = parent.clone();
+    let ui = ui.clone();
+    gtk::glib::spawn_future_local(async move {
+        match secrets::load_api_key().await {
+            Ok(Some(api_key)) => {
+                let worker_key = SecretString::from(api_key.expose_secret());
+                let carriers = gio::spawn_blocking(move || {
+                    let client = ParcelClient::new(worker_key)?;
+                    client.supported_carriers()
+                })
+                .await;
+
+                ui.loading.set(false);
+                ui.refresh_button.set_sensitive(true);
+                ui.add_button.set_sensitive(true);
+
+                match carriers {
+                    Ok(Ok(carriers)) => {
+                        restore_auxiliary_banner(&ui);
+                        show_add_delivery_dialog(&parent, &ui, api_key, carriers);
+                    }
+                    Ok(Err(error)) => {
+                        restore_auxiliary_banner(&ui);
+                        let error = error.localized_message();
+                        let message = interpolate(
+                            tr("Paketdienste konnten nicht geladen werden: {error}"),
+                            &[("error", &error)],
+                        );
+                        show_toast(&ui, &message);
+                    }
+                    Err(_) => {
+                        restore_auxiliary_banner(&ui);
+                        show_toast(
+                            &ui,
+                            &tr("Die Paketdienstliste konnte nicht geladen werden."),
+                        );
+                    }
+                }
+            }
+            Ok(None) => {
+                ui.loading.set(false);
+                ui.refresh_button.set_sensitive(true);
+                ui.add_button.set_sensitive(true);
+                show_disconnected(&ui);
+                show_toast(
+                    &ui,
+                    &tr("Verbinde zuerst dein Parcel-Konto, um eine Sendung hinzuzufügen."),
+                );
+                show_connection_dialog(&parent, &ui);
+            }
+            Err(error) => {
+                ui.loading.set(false);
+                ui.refresh_button.set_sensitive(true);
+                ui.add_button.set_sensitive(true);
+                restore_auxiliary_banner(&ui);
+                show_toast(&ui, &error.localized_message());
+            }
+        }
+    });
+}
+
+fn restore_auxiliary_banner(ui: &LiveUi) {
+    if ui.using_real_data.get() {
+        ui.banner.set_revealed(false);
+    } else {
+        show_disconnected(ui);
+    }
+}
+
+fn show_add_delivery_dialog(
+    parent: &adw::ApplicationWindow,
+    ui: &LiveUi,
+    api_key: SecretString,
+    carriers: SupportedCarriersResponse,
+) {
+    if ui.loading.get() || ui.dialog_open.replace(true) {
+        return;
+    }
+
+    let choices = Rc::new(carrier_choices(carriers));
+    if choices.is_empty() {
+        ui.dialog_open.set(false);
+        show_toast(ui, &tr("Parcel hat keine Paketdienste bereitgestellt."));
+        return;
+    }
+
+    let description = adw::EntryRow::builder()
+        .title(tr("Beschreibung"))
+        .activates_default(true)
+        .build();
+    let tracking_number = adw::EntryRow::builder()
+        .title(tr("Sendungsnummer"))
+        .activates_default(true)
+        .build();
+
+    let carrier_labels = choices
+        .iter()
+        .map(|choice| choice.name.as_str())
+        .collect::<Vec<_>>();
+    let carrier_model = gtk::StringList::new(&carrier_labels);
+    let carrier = adw::ComboRow::builder()
+        .title(tr("Paketdienst"))
+        .enable_search(true)
+        .model(&carrier_model)
+        .build();
+    carrier.set_selected(gtk::INVALID_LIST_POSITION);
+
+    let primary_group = adw::PreferencesGroup::new();
+    primary_group.add(&description);
+    primary_group.add(&tracking_number);
+    primary_group.add(&carrier);
+
+    let postcode = adw::EntryRow::builder()
+        .title(tr("Postleitzahl (optional)"))
+        .activates_default(true)
+        .build();
+    let email = adw::EntryRow::builder()
+        .title(tr("E-Mail-Adresse (optional)"))
+        .input_purpose(gtk::InputPurpose::Email)
+        .activates_default(true)
+        .build();
+    let optional_group = adw::PreferencesGroup::builder()
+        .title(tr("Optionale Angaben"))
+        .description(tr(
+            "Manche Paketdienste benötigen eine Postleitzahl oder E-Mail-Adresse.",
+        ))
+        .build();
+    optional_group.add(&postcode);
+    optional_group.add(&email);
+
+    let form = gtk::Box::new(Orientation::Vertical, 16);
+    form.set_size_request(460, -1);
+    form.set_margin_top(8);
+    form.append(&primary_group);
+    form.append(&optional_group);
+
+    let dialog = adw::AlertDialog::builder()
+        .heading(tr("Neue Sendung hinzufügen"))
+        .body(tr(
+            "Parcel prüft die Sendungsnummer nach dem Absenden. Ungültige Versuche zählen zum täglichen API-Limit.",
+        ))
+        .default_response("add")
+        .close_response("cancel")
+        .extra_child(&form)
+        .build();
+    dialog.add_response("cancel", &tr("Abbrechen"));
+    dialog.add_response("add", &tr("Hinzufügen"));
+    dialog.set_response_appearance("add", adw::ResponseAppearance::Suggested);
+    dialog.set_response_enabled("add", false);
+
+    connect_add_dialog_validation(
+        &dialog,
+        &description,
+        &tracking_number,
+        &carrier,
+        choices.len(),
+    );
+
+    let ui = ui.clone();
+    let response = dialog.choose_future(Some(parent));
+    gtk::glib::spawn_future_local(async move {
+        let response = response.await;
+        ui.dialog_open.set(false);
+
+        if response != "add" {
+            clear_add_form(&description, &tracking_number, &postcode, &email);
+            return;
+        }
+
+        let selected = carrier.selected() as usize;
+        let carrier_code = choices
+            .get(selected)
+            .map(|choice| choice.code.clone())
+            .unwrap_or_default();
+        let draft = NewDeliveryDraft {
+            tracking_number: tracking_number.text().to_string(),
+            carrier_code,
+            description: description.text().to_string(),
+            language: crate::i18n::initialize().to_owned(),
+            send_push_confirmation: false,
+            postcode: postcode.text().to_string(),
+            email: email.text().to_string(),
+        };
+        clear_add_form(&description, &tracking_number, &postcode, &email);
+
+        match NewDelivery::try_from(draft) {
+            Ok(delivery) => submit_new_delivery(&ui, api_key, delivery),
+            Err(error) => show_toast(&ui, &error.localized_message()),
+        }
+    });
+}
+
+fn carrier_choices(carriers: SupportedCarriersResponse) -> Vec<CarrierChoice> {
+    let locale = crate::i18n::initialize();
+    let language = locale.split(['_', '-']).next().unwrap_or(locale);
+    let mut choices = carriers
+        .into_iter()
+        .map(|(code, carrier)| {
+            let name = carrier
+                .name_variations
+                .get(language)
+                .cloned()
+                .unwrap_or(carrier.name);
+            CarrierChoice { code, name }
+        })
+        .collect::<Vec<_>>();
+    choices.sort_by_cached_key(|choice| choice.name.to_lowercase());
+    choices
+}
+
+fn connect_add_dialog_validation(
+    dialog: &adw::AlertDialog,
+    description: &adw::EntryRow,
+    tracking_number: &adw::EntryRow,
+    carrier: &adw::ComboRow,
+    carrier_count: usize,
+) {
+    let update = Rc::new({
+        let dialog = dialog.clone();
+        let description = description.clone();
+        let tracking_number = tracking_number.clone();
+        let carrier = carrier.clone();
+        move || {
+            let selected = carrier.selected() as usize;
+            dialog.set_response_enabled(
+                "add",
+                !description.text().trim().is_empty()
+                    && !tracking_number.text().trim().is_empty()
+                    && selected < carrier_count,
+            );
+        }
+    });
+
+    {
+        let update = update.clone();
+        description.connect_changed(move |_| update());
+    }
+    {
+        let update = update.clone();
+        tracking_number.connect_changed(move |_| update());
+    }
+    carrier.connect_selected_notify(move |_| update());
+}
+
+fn clear_add_form(
+    description: &adw::EntryRow,
+    tracking_number: &adw::EntryRow,
+    postcode: &adw::EntryRow,
+    email: &adw::EntryRow,
+) {
+    description.set_text("");
+    tracking_number.set_text("");
+    postcode.set_text("");
+    email.set_text("");
+}
+
+fn submit_new_delivery(ui: &LiveUi, api_key: SecretString, delivery: NewDelivery) {
+    if ui.loading.replace(true) {
+        return;
+    }
+
+    ui.refresh_button.set_sensitive(false);
+    ui.add_button.set_sensitive(false);
+    ui.banner.set_title(&tr("Sendung wird hinzugefügt …"));
+    ui.banner.set_button_label(None);
+    ui.banner.set_revealed(true);
+
+    let worker_key = SecretString::from(api_key.expose_secret());
+    let ui = ui.clone();
+    gtk::glib::spawn_future_local(async move {
+        let result = gio::spawn_blocking(move || {
+            let client = ParcelClient::new(worker_key)?;
+            client.add_delivery(&delivery)
+        })
+        .await;
+
+        ui.loading.set(false);
+        ui.refresh_button.set_sensitive(true);
+        ui.add_button.set_sensitive(true);
+
+        match result {
+            Ok(Ok(())) => {
+                show_toast(
+                    &ui,
+                    &tr(
+                        "Sendung wurde hinzugefügt. Trackingdaten können nach der ersten Parcel-Aktualisierung erscheinen.",
+                    ),
+                );
+                sync_with_key(&ui, api_key, false);
+            }
+            Ok(Err(error)) => {
+                restore_auxiliary_banner(&ui);
+                let error = error.localized_message();
+                let message = interpolate(
+                    tr("Sendung konnte nicht hinzugefügt werden: {error}"),
+                    &[("error", &error)],
+                );
+                show_toast(&ui, &message);
+            }
+            Err(_) => {
+                restore_auxiliary_banner(&ui);
+                show_toast(&ui, &tr("Die Sendung konnte nicht hinzugefügt werden."));
+            }
+        }
+    });
+}
+
 fn show_connection_dialog(parent: &adw::ApplicationWindow, ui: &LiveUi) {
     if ui.loading.get() || ui.dialog_open.replace(true) {
         return;
@@ -647,18 +990,38 @@ fn sync_with_key(ui: &LiveUi, api_key: SecretString, persist_key: bool) {
     gtk::glib::spawn_future_local(async move {
         let result = gio::spawn_blocking(move || {
             let client = ParcelClient::new(worker_key)?;
-            let deliveries = client.deliveries(FilterMode::Recent)?;
+            let fetched_deliveries = client.deliveries(FilterMode::Recent)?;
             let fetched_at = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs();
-            let (previous_snapshot, cache_error) = if let Some(cache) = cache {
-                match cache.replace_snapshot(SnapshotKind::Recent, fetched_at, deliveries.clone()) {
-                    Ok(previous) => (previous, None),
-                    Err(error) => (None, Some(error)),
+            let (deliveries, previous_snapshot, cache_error) = if let Some(cache) = cache {
+                match cache.snapshot(SnapshotKind::Recent) {
+                    Ok(cached_snapshot) => {
+                        let deliveries = merge_delivered_history(
+                            fetched_deliveries,
+                            cached_snapshot
+                                .as_ref()
+                                .map(|snapshot| snapshot.deliveries.as_slice())
+                                .unwrap_or(&[]),
+                        );
+                        match cache.replace_snapshot(
+                            SnapshotKind::Recent,
+                            fetched_at,
+                            deliveries.clone(),
+                        ) {
+                            Ok(previous) => (deliveries, previous, None),
+                            Err(error) => (deliveries, None, Some(error)),
+                        }
+                    }
+                    Err(error) => (
+                        merge_delivered_history(fetched_deliveries, &[]),
+                        None,
+                        Some(error),
+                    ),
                 }
             } else {
-                (None, None)
+                (merge_delivered_history(fetched_deliveries, &[]), None, None)
             };
             Ok::<_, ApiError>((deliveries, previous_snapshot, cache_error, fetched_at))
         })
@@ -916,6 +1279,14 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
                 .count(),
         ),
         (
+            "emblem-ok-symbolic",
+            tr("Zugestellt"),
+            deliveries
+                .iter()
+                .filter(|item| item.status == DeliveryStatus::Delivered)
+                .count(),
+        ),
+        (
             "document-open-recent-symbolic",
             tr("Kürzlich"),
             deliveries
@@ -1009,6 +1380,10 @@ fn update_sidebar(sidebar: &Sidebar, deliveries: &[Delivery], connected: bool) {
         deliveries
             .iter()
             .filter(|item| item.status == DeliveryStatus::ReadyForPickup)
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| item.status == DeliveryStatus::Delivered)
             .count(),
         deliveries
             .iter()
@@ -1341,4 +1716,57 @@ fn timeline_row(
     }
     row.append(&content);
     row
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn sidebar_indices_keep_delivered_and_recent_as_separate_rows() {
+        assert_eq!(
+            DeliveryFilter::from_sidebar_index(4),
+            DeliveryFilter::Delivered
+        );
+        assert_eq!(
+            DeliveryFilter::from_sidebar_index(5),
+            DeliveryFilter::Recent
+        );
+    }
+
+    #[test]
+    fn delivered_filter_excludes_frozen_recent_entries() {
+        assert!(DeliveryFilter::Delivered.matches(DeliveryStatus::Delivered));
+        assert!(!DeliveryFilter::Delivered.matches(DeliveryStatus::Frozen));
+        assert!(DeliveryFilter::Recent.matches(DeliveryStatus::Delivered));
+        assert!(DeliveryFilter::Recent.matches(DeliveryStatus::Frozen));
+    }
+
+    #[test]
+    fn carrier_choices_are_sorted_and_keep_the_api_code() {
+        let mut carriers = SupportedCarriersResponse::new();
+        carriers.insert(
+            "zeta".into(),
+            crate::api::SupportedCarrier {
+                name: "Zeta Parcel".into(),
+                name_variations: BTreeMap::new(),
+                extra_required: None,
+            },
+        );
+        carriers.insert(
+            "alpha".into(),
+            crate::api::SupportedCarrier {
+                name: "Alpha Post".into(),
+                name_variations: BTreeMap::new(),
+                extra_required: None,
+            },
+        );
+
+        let choices = carrier_choices(carriers);
+
+        assert_eq!(choices[0].code, "alpha");
+        assert_eq!(choices[1].code, "zeta");
+        assert_eq!(choices[0].name, "Alpha Post");
+    }
 }

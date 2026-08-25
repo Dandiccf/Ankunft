@@ -714,3 +714,99 @@ msgid "{} wichtige Sendungsänderung"
 msgid_plural "{} wichtige Sendungsänderungen"
 msgstr[0] "{} atualização importante de entrega"
 msgstr[1] "{} atualizações importantes de entregas"
+
+#: src/ui/mod.rs
+msgid "Zugestellte Sendungen"
+msgstr "Entregas concluídas"
+
+#: src/ui/mod.rs
+msgid "Noch keine zugestellten Sendungen"
+msgstr "Ainda não há entregas concluídas"
+
+#: src/ui/mod.rs
+msgid "Parcel stellt nur kürzlich abgeschlossene Sendungen bereit. Ankunft bewahrt künftig lokal beobachtete Zustellungen auf diesem Gerät auf."
+msgstr "O Parcel fornece apenas envios concluídos recentemente. A partir de agora, o Ankunft manterá neste dispositivo as entregas acompanhadas localmente."
+
+#: src/ui/mod.rs
+msgid "Paketdienste werden geladen …"
+msgstr "Carregando transportadoras …"
+
+#: src/ui/mod.rs
+msgid "Paketdienste konnten nicht geladen werden: {error}"
+msgstr "Não foi possível carregar as transportadoras: {error}"
+
+#: src/ui/mod.rs
+msgid "Die Paketdienstliste konnte nicht geladen werden."
+msgstr "Não foi possível carregar a lista de transportadoras."
+
+#: src/ui/mod.rs
+msgid "Verbinde zuerst dein Parcel-Konto, um eine Sendung hinzuzufügen."
+msgstr "Primeiro, conecte sua conta do Parcel para adicionar uma entrega."
+
+#: src/ui/mod.rs
+msgid "Parcel hat keine Paketdienste bereitgestellt."
+msgstr "O Parcel não forneceu nenhuma transportadora."
+
+#: src/ui/mod.rs
+msgid "Beschreibung"
+msgstr "Descrição"
+
+#: src/ui/mod.rs
+msgid "Sendungsnummer"
+msgstr "Código de rastreamento"
+
+#: src/ui/mod.rs
+msgid "Paketdienst"
+msgstr "Transportadora"
+
+#: src/ui/mod.rs
+msgid "Postleitzahl (optional)"
+msgstr "CEP (opcional)"
+
+#: src/ui/mod.rs
+msgid "E-Mail-Adresse (optional)"
+msgstr "Endereço de e-mail (opcional)"
+
+#: src/ui/mod.rs
+msgid "Optionale Angaben"
+msgstr "Informações opcionais"
+
+#: src/ui/mod.rs
+msgid "Manche Paketdienste benötigen eine Postleitzahl oder E-Mail-Adresse."
+msgstr "Algumas transportadoras exigem um CEP ou endereço de e-mail."
+
+#: src/ui/mod.rs
+msgid "Neue Sendung hinzufügen"
+msgstr "Adicionar nova entrega"
+
+#: src/ui/mod.rs
+msgid "Parcel prüft die Sendungsnummer nach dem Absenden. Ungültige Versuche zählen zum täglichen API-Limit."
+msgstr "O Parcel verificará o código de rastreamento após o envio. Tentativas inválidas contam para o limite diário da API."
+
+#: src/ui/mod.rs
+msgid "Sendung wird hinzugefügt …"
+msgstr "Adicionando entrega …"
+
+#: src/ui/mod.rs
+msgid "Sendung wurde hinzugefügt. Trackingdaten können nach der ersten Parcel-Aktualisierung erscheinen."
+msgstr "A entrega foi adicionada. Os dados de rastreamento poderão aparecer após a primeira atualização do Parcel."
+
+#: src/ui/mod.rs
+msgid "Sendung konnte nicht hinzugefügt werden: {error}"
+msgstr "Não foi possível adicionar a entrega: {error}"
+
+#: src/ui/mod.rs
+msgid "Die Sendung konnte nicht hinzugefügt werden."
+msgstr "Não foi possível adicionar a entrega."
+
+#: src/ui/mod.rs
+msgid "Bitte gib eine Sendungsnummer ein."
+msgstr "Digite um código de rastreamento."
+
+#: src/ui/mod.rs
+msgid "Bitte wähle einen Paketdienst aus."
+msgstr "Selecione uma transportadora."
+
+#: src/ui/mod.rs
+msgid "Bitte gib eine Beschreibung ein."
+msgstr "Digite uma descrição."

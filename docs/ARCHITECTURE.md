@@ -18,6 +18,12 @@ im Hintergrund zuverlässig arbeiten kann.
 - `rate_limit`: persistentes, gleitendes Rate-Limit-Ledger
 - `notifications`: datensparsame, gebündelte GNOME-Statusmeldungen
 
+Die von Parcel gelieferte Ansicht `recent` wird lokal um bereits beobachtete,
+zugestellte Sendungen ergänzt. Dadurch bleibt eine private Historie erhalten,
+auch wenn ältere Zustellungen nicht mehr über die eingeschränkte externe API
+geliefert werden. Ein vollständiger rückwirkender Import ist über diese API
+nicht möglich.
+
 Geplante Module:
 
 - `sync`: Hintergrundabgleich und Änderungsberechnung
@@ -46,6 +52,6 @@ garantierte Zeitzone fehlt. Sie werden so dargestellt, wie Parcel sie liefert.
 
 ## Nächste Meilensteine
 
-1. Hinzufügen-Dialog mit durchsuchbarer Paketdienstliste
+1. Verwaltung und gezieltes Entfernen lokal archivierter Zustellungen
 2. optionaler Hintergrundbetrieb und regelmäßiger Abgleich
 3. StatusNotifierItem, Autostart und reproduzierbare Paketierung

@@ -34,7 +34,7 @@ impl FilterMode {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Serialize)]
 pub struct NewDelivery {
     pub tracking_number: String,
     pub carrier_code: String,
@@ -45,6 +45,92 @@ pub struct NewDelivery {
     pub postcode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
+}
+
+/// User-editable fields for a new Parcel delivery.
+///
+/// This type intentionally does not implement `Debug`: it contains a tracking
+/// number, which must not accidentally end up in application logs.
+pub struct NewDeliveryDraft {
+    pub tracking_number: String,
+    pub carrier_code: String,
+    pub description: String,
+    pub language: String,
+    pub send_push_confirmation: bool,
+    pub postcode: String,
+    pub email: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+pub enum NewDeliveryValidationError {
+    #[error("Bitte gib eine Sendungsnummer ein.")]
+    TrackingNumber,
+    #[error("Bitte wähle einen Paketdienst aus.")]
+    Carrier,
+    #[error("Bitte gib eine Beschreibung ein.")]
+    Description,
+}
+
+impl NewDeliveryValidationError {
+    pub fn localized_message(self) -> String {
+        tr(match self {
+            Self::TrackingNumber => "Bitte gib eine Sendungsnummer ein.",
+            Self::Carrier => "Bitte wähle einen Paketdienst aus.",
+            Self::Description => "Bitte gib eine Beschreibung ein.",
+        })
+    }
+}
+
+impl TryFrom<NewDeliveryDraft> for NewDelivery {
+    type Error = NewDeliveryValidationError;
+
+    fn try_from(draft: NewDeliveryDraft) -> Result<Self, Self::Error> {
+        let tracking_number = required_field(
+            draft.tracking_number,
+            NewDeliveryValidationError::TrackingNumber,
+        )?;
+        let carrier_code = required_field(draft.carrier_code, NewDeliveryValidationError::Carrier)?;
+        let description =
+            required_field(draft.description, NewDeliveryValidationError::Description)?;
+
+        Ok(Self {
+            tracking_number,
+            carrier_code,
+            description,
+            language: normalize_language_code(&draft.language),
+            send_push_confirmation: draft.send_push_confirmation,
+            postcode: optional_field(draft.postcode),
+            email: optional_field(draft.email),
+        })
+    }
+}
+
+fn required_field(
+    value: String,
+    error: NewDeliveryValidationError,
+) -> Result<String, NewDeliveryValidationError> {
+    let value = value.trim();
+    if value.is_empty() {
+        Err(error)
+    } else {
+        Ok(value.to_owned())
+    }
+}
+
+fn optional_field(value: String) -> Option<String> {
+    let value = value.trim();
+    (!value.is_empty()).then(|| value.to_owned())
+}
+
+fn normalize_language_code(locale: &str) -> String {
+    locale
+        .split(['_', '-', '.', '@'])
+        .next()
+        .filter(|language| {
+            language.len() == 2 && language.bytes().all(|byte| byte.is_ascii_alphabetic())
+        })
+        .map(str::to_ascii_lowercase)
+        .unwrap_or_else(|| "en".to_owned())
 }
 
 #[derive(Debug, Error)]
@@ -226,9 +312,72 @@ impl ParcelClient {
 mod tests {
     use super::*;
 
+    fn valid_draft() -> NewDeliveryDraft {
+        NewDeliveryDraft {
+            tracking_number: "  TRACK-123  ".into(),
+            carrier_code: "  dpdat  ".into(),
+            description: "  Kaffee  ".into(),
+            language: "de_AT.UTF-8".into(),
+            send_push_confirmation: true,
+            postcode: "  1010  ".into(),
+            email: "  parcel@example.test  ".into(),
+        }
+    }
+
     #[test]
     fn filter_mode_matches_the_documented_query_values() {
         assert_eq!(FilterMode::Active.as_str(), "active");
         assert_eq!(FilterMode::Recent.as_str(), "recent");
+    }
+
+    #[test]
+    fn maps_trimmed_form_values_to_the_api_payload() {
+        let delivery = NewDelivery::try_from(valid_draft()).expect("valid delivery");
+
+        assert_eq!(delivery.tracking_number, "TRACK-123");
+        assert_eq!(delivery.carrier_code, "dpdat");
+        assert_eq!(delivery.description, "Kaffee");
+        assert_eq!(delivery.language, "de");
+        assert!(delivery.send_push_confirmation);
+        assert_eq!(delivery.postcode.as_deref(), Some("1010"));
+        assert_eq!(delivery.email.as_deref(), Some("parcel@example.test"));
+    }
+
+    #[test]
+    fn omits_empty_optional_values_and_falls_back_to_english() {
+        let mut draft = valid_draft();
+        draft.language = "invalid-locale".into();
+        draft.postcode = "  ".into();
+        draft.email = String::new();
+
+        let delivery = NewDelivery::try_from(draft).expect("valid delivery");
+
+        assert_eq!(delivery.language, "en");
+        assert_eq!(delivery.postcode, None);
+        assert_eq!(delivery.email, None);
+    }
+
+    #[test]
+    fn rejects_each_missing_required_value() {
+        let mut draft = valid_draft();
+        draft.tracking_number = "  ".into();
+        assert_eq!(
+            NewDelivery::try_from(draft).err(),
+            Some(NewDeliveryValidationError::TrackingNumber)
+        );
+
+        let mut draft = valid_draft();
+        draft.carrier_code = String::new();
+        assert_eq!(
+            NewDelivery::try_from(draft).err(),
+            Some(NewDeliveryValidationError::Carrier)
+        );
+
+        let mut draft = valid_draft();
+        draft.description = "\t".into();
+        assert_eq!(
+            NewDelivery::try_from(draft).err(),
+            Some(NewDeliveryValidationError::Description)
+        );
     }
 }

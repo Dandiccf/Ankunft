@@ -714,3 +714,99 @@ msgid "{} wichtige Sendungsänderung"
 msgid_plural "{} wichtige Sendungsänderungen"
 msgstr[0] "{} important delivery update"
 msgstr[1] "{} important delivery updates"
+
+#: src/ui/mod.rs
+msgid "Zugestellte Sendungen"
+msgstr "Delivered shipments"
+
+#: src/ui/mod.rs
+msgid "Noch keine zugestellten Sendungen"
+msgstr "No delivered shipments yet"
+
+#: src/ui/mod.rs
+msgid "Parcel stellt nur kürzlich abgeschlossene Sendungen bereit. Ankunft bewahrt künftig lokal beobachtete Zustellungen auf diesem Gerät auf."
+msgstr "Parcel only provides recently completed shipments. From now on, Ankunft will retain locally observed deliveries on this device."
+
+#: src/ui/mod.rs
+msgid "Paketdienste werden geladen …"
+msgstr "Loading carriers …"
+
+#: src/ui/mod.rs
+msgid "Paketdienste konnten nicht geladen werden: {error}"
+msgstr "Could not load carriers: {error}"
+
+#: src/ui/mod.rs
+msgid "Die Paketdienstliste konnte nicht geladen werden."
+msgstr "The carrier list could not be loaded."
+
+#: src/ui/mod.rs
+msgid "Verbinde zuerst dein Parcel-Konto, um eine Sendung hinzuzufügen."
+msgstr "Connect your Parcel account first to add a shipment."
+
+#: src/ui/mod.rs
+msgid "Parcel hat keine Paketdienste bereitgestellt."
+msgstr "Parcel did not provide any carriers."
+
+#: src/ui/mod.rs
+msgid "Beschreibung"
+msgstr "Description"
+
+#: src/ui/mod.rs
+msgid "Sendungsnummer"
+msgstr "Tracking number"
+
+#: src/ui/mod.rs
+msgid "Paketdienst"
+msgstr "Carrier"
+
+#: src/ui/mod.rs
+msgid "Postleitzahl (optional)"
+msgstr "Postal code (optional)"
+
+#: src/ui/mod.rs
+msgid "E-Mail-Adresse (optional)"
+msgstr "Email address (optional)"
+
+#: src/ui/mod.rs
+msgid "Optionale Angaben"
+msgstr "Optional information"
+
+#: src/ui/mod.rs
+msgid "Manche Paketdienste benötigen eine Postleitzahl oder E-Mail-Adresse."
+msgstr "Some carriers require a postal code or email address."
+
+#: src/ui/mod.rs
+msgid "Neue Sendung hinzufügen"
+msgstr "Add a new shipment"
+
+#: src/ui/mod.rs
+msgid "Parcel prüft die Sendungsnummer nach dem Absenden. Ungültige Versuche zählen zum täglichen API-Limit."
+msgstr "Parcel will validate the tracking number after submission. Invalid attempts count toward the daily API limit."
+
+#: src/ui/mod.rs
+msgid "Sendung wird hinzugefügt …"
+msgstr "Adding shipment …"
+
+#: src/ui/mod.rs
+msgid "Sendung wurde hinzugefügt. Trackingdaten können nach der ersten Parcel-Aktualisierung erscheinen."
+msgstr "Shipment added. Tracking data may appear after the first Parcel update."
+
+#: src/ui/mod.rs
+msgid "Sendung konnte nicht hinzugefügt werden: {error}"
+msgstr "Could not add shipment: {error}"
+
+#: src/ui/mod.rs
+msgid "Die Sendung konnte nicht hinzugefügt werden."
+msgstr "The shipment could not be added."
+
+#: src/ui/mod.rs
+msgid "Bitte gib eine Sendungsnummer ein."
+msgstr "Please enter a tracking number."
+
+#: src/ui/mod.rs
+msgid "Bitte wähle einen Paketdienst aus."
+msgstr "Please select a carrier."
+
+#: src/ui/mod.rs
+msgid "Bitte gib eine Beschreibung ein."
+msgstr "Please enter a description."
