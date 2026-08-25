@@ -14,8 +14,8 @@ API.
 - dedicated delivered-shipment view with a private local history of completed
   deliveries observed by Ankunft
 - detailed event timeline and delivery estimates
-- add-delivery assistant with a searchable carrier list and optional postcode
-  or email details
+- add-delivery assistant with live carrier filtering, private local carrier
+  suggestions, and optional postcode or email details
 - secure setup dialog for the personal Parcel API key
 - live synchronization outside the GTK main thread
 - API key storage exclusively in the GNOME Keyring

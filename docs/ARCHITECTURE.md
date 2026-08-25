@@ -34,6 +34,8 @@ Geplante Module:
 - `GET /external/deliveries/?filter_mode=recent`: maximal 20 Aufrufe pro Stunde
 - `POST /external/add-delivery/`: maximal 20 Versuche pro Tag; niemals automatisch wiederholen
 - `GET /external/supported_carriers.json`: Paketdienst-Metadaten
+- Paketdienstsuche und Trackingnummer-Vorschläge: vollständig lokal; die
+  öffentliche Parcel-API stellt keine Erkennungsregeln oder Vorschau bereit
 
 Die API liefert keine Sendungs-ID. Intern wird deshalb das Paar aus
 `carrier_code` und `tracking_number` als stabiler Schlüssel verwendet.

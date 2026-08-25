@@ -1,6 +1,7 @@
 #[allow(dead_code, unused_imports)]
 mod api;
 mod app;
+mod carrier_detection;
 mod i18n;
 mod model;
 mod notifications;

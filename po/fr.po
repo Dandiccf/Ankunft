@@ -810,3 +810,7 @@ msgstr "Veuillez sélectionner un transporteur."
 #: src/ui/mod.rs
 msgid "Bitte gib eine Beschreibung ein."
 msgstr "Veuillez saisir une description."
+
+#: src/ui/mod.rs
+msgid "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."
+msgstr "Suggéré à partir du numéro de suivi — veuillez vérifier."

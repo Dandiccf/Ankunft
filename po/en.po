@@ -810,3 +810,7 @@ msgstr "Please select a carrier."
 #: src/ui/mod.rs
 msgid "Bitte gib eine Beschreibung ein."
 msgstr "Please enter a description."
+
+#: src/ui/mod.rs
+msgid "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."
+msgstr "Suggested from the tracking number — please verify."

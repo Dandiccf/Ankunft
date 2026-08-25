@@ -810,3 +810,7 @@ msgstr "Seleziona un corriere."
 #: src/ui/mod.rs
 msgid "Bitte gib eine Beschreibung ein."
 msgstr "Inserisci una descrizione."
+
+#: src/ui/mod.rs
+msgid "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."
+msgstr "Suggerito in base al numero di tracciamento: verifica la selezione."

@@ -810,3 +810,7 @@ msgstr "Bitte wähle einen Paketdienst aus."
 #: src/ui/mod.rs
 msgid "Bitte gib eine Beschreibung ein."
 msgstr "Bitte gib eine Beschreibung ein."
+
+#: src/ui/mod.rs
+msgid "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."
+msgstr "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."

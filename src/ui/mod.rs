@@ -14,6 +14,7 @@ use crate::{
         ApiError, FilterMode, NewDelivery, NewDeliveryDraft, ParcelClient,
         SupportedCarriersResponse,
     },
+    carrier_detection::suggest_carrier_codes,
     i18n::{interpolate, tr},
     model::{Delivery, DeliveryStatus, demo_deliveries, merge_delivered_history},
     notifications, secrets,
@@ -677,11 +678,21 @@ fn show_add_delivery_dialog(
     api_key: SecretString,
     carriers: SupportedCarriersResponse,
 ) {
+    let choices = Rc::new(carrier_choices(carriers));
+    show_add_delivery_dialog_with_choices(parent, ui, api_key, choices, None);
+}
+
+fn show_add_delivery_dialog_with_choices(
+    parent: &adw::ApplicationWindow,
+    ui: &LiveUi,
+    api_key: SecretString,
+    choices: Rc<Vec<CarrierChoice>>,
+    prefill: Option<NewDelivery>,
+) {
     if ui.loading.get() || ui.dialog_open.replace(true) {
         return;
     }
 
-    let choices = Rc::new(carrier_choices(carriers));
     if choices.is_empty() {
         ui.dialog_open.set(false);
         show_toast(ui, &tr("Parcel hat keine Paketdienste bereitgestellt."));
@@ -702,17 +713,24 @@ fn show_add_delivery_dialog(
         .map(|choice| choice.name.as_str())
         .collect::<Vec<_>>();
     let carrier_model = gtk::StringList::new(&carrier_labels);
+    let carrier_expression = gtk::PropertyExpression::new(
+        gtk::StringObject::static_type(),
+        gtk::Expression::NONE,
+        "string",
+    );
     let carrier = adw::ComboRow::builder()
         .title(tr("Paketdienst"))
         .enable_search(true)
+        .search_match_mode(gtk::StringFilterMatchMode::Substring)
+        .expression(&carrier_expression)
         .model(&carrier_model)
         .build();
     carrier.set_selected(gtk::INVALID_LIST_POSITION);
 
     let primary_group = adw::PreferencesGroup::new();
-    primary_group.add(&description);
     primary_group.add(&tracking_number);
     primary_group.add(&carrier);
+    primary_group.add(&description);
 
     let postcode = adw::EntryRow::builder()
         .title(tr("Postleitzahl (optional)"))
@@ -745,12 +763,28 @@ fn show_add_delivery_dialog(
         ))
         .default_response("add")
         .close_response("cancel")
+        .focus_widget(&tracking_number)
         .extra_child(&form)
         .build();
     dialog.add_response("cancel", &tr("Abbrechen"));
     dialog.add_response("add", &tr("Hinzufügen"));
     dialog.set_response_appearance("add", adw::ResponseAppearance::Suggested);
     dialog.set_response_enabled("add", false);
+
+    if let Some(prefill) = prefill.as_ref() {
+        description.set_text(&prefill.description);
+        tracking_number.set_text(&prefill.tracking_number);
+        postcode.set_text(prefill.postcode.as_deref().unwrap_or(""));
+        email.set_text(prefill.email.as_deref().unwrap_or(""));
+        if let Some(index) = choices
+            .iter()
+            .position(|choice| choice.code == prefill.carrier_code)
+        {
+            carrier.set_selected(index as u32);
+        }
+    }
+
+    connect_carrier_suggestion(&tracking_number, &carrier, &choices);
 
     connect_add_dialog_validation(
         &dialog,
@@ -760,8 +794,9 @@ fn show_add_delivery_dialog(
         choices.len(),
     );
 
+    let parent = parent.clone();
     let ui = ui.clone();
-    let response = dialog.choose_future(Some(parent));
+    let response = dialog.choose_future(Some(&parent));
     gtk::glib::spawn_future_local(async move {
         let response = response.await;
         ui.dialog_open.set(false);
@@ -788,7 +823,9 @@ fn show_add_delivery_dialog(
         clear_add_form(&description, &tracking_number, &postcode, &email);
 
         match NewDelivery::try_from(draft) {
-            Ok(delivery) => submit_new_delivery(&ui, api_key, delivery),
+            Ok(delivery) => {
+                submit_new_delivery(&parent, &ui, api_key, delivery, Rc::clone(&choices))
+            }
             Err(error) => show_toast(&ui, &error.localized_message()),
         }
     });
@@ -812,6 +849,73 @@ fn carrier_choices(carriers: SupportedCarriersResponse) -> Vec<CarrierChoice> {
     choices
 }
 
+fn connect_carrier_suggestion(
+    tracking_number: &adw::EntryRow,
+    carrier: &adw::ComboRow,
+    choices: &Rc<Vec<CarrierChoice>>,
+) {
+    let automatic_selection = Rc::new(Cell::new(None::<u32>));
+    let applying_suggestion = Rc::new(Cell::new(false));
+
+    {
+        let automatic_selection = Rc::clone(&automatic_selection);
+        let applying_suggestion = Rc::clone(&applying_suggestion);
+        carrier.connect_selected_notify(move |carrier| {
+            if !applying_suggestion.get() {
+                automatic_selection.set(None);
+                carrier.set_subtitle("");
+            }
+        });
+    }
+
+    let locale = carrier_locale_hint();
+    let choices = Rc::clone(choices);
+    let carrier = carrier.clone();
+    tracking_number.connect_changed(move |tracking_number| {
+        let current = carrier.selected();
+        if current != gtk::INVALID_LIST_POSITION && automatic_selection.get() != Some(current) {
+            return;
+        }
+
+        let suggestion = suggested_carrier_index(&choices, &tracking_number.text(), &locale);
+        applying_suggestion.set(true);
+        carrier.set_selected(suggestion.unwrap_or(gtk::INVALID_LIST_POSITION));
+        if suggestion.is_some() {
+            carrier.set_subtitle(&tr("Aus der Sendungsnummer vorgeschlagen – bitte prüfen."));
+        } else {
+            carrier.set_subtitle("");
+        }
+        automatic_selection.set(suggestion);
+        applying_suggestion.set(false);
+    });
+}
+
+fn suggested_carrier_index(
+    choices: &[CarrierChoice],
+    tracking_number: &str,
+    locale: &str,
+) -> Option<u32> {
+    suggest_carrier_codes(tracking_number, locale)
+        .into_iter()
+        .find_map(|code| {
+            choices
+                .iter()
+                .position(|choice| choice.code == code)
+                .map(|index| index as u32)
+        })
+}
+
+fn carrier_locale_hint() -> String {
+    ["LC_ALL", "LC_MESSAGES", "LANG"]
+        .into_iter()
+        .find_map(|name| {
+            std::env::var(name)
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+        })
+        .unwrap_or_else(|| crate::i18n::initialize().to_owned())
+}
+
 fn connect_add_dialog_validation(
     dialog: &adw::AlertDialog,
     description: &adw::EntryRow,
@@ -820,11 +924,19 @@ fn connect_add_dialog_validation(
     carrier_count: usize,
 ) {
     let update = Rc::new({
-        let dialog = dialog.clone();
-        let description = description.clone();
-        let tracking_number = tracking_number.clone();
-        let carrier = carrier.clone();
+        let dialog = dialog.downgrade();
+        let description = description.downgrade();
+        let tracking_number = tracking_number.downgrade();
+        let carrier = carrier.downgrade();
         move || {
+            let (Some(dialog), Some(description), Some(tracking_number), Some(carrier)) = (
+                dialog.upgrade(),
+                description.upgrade(),
+                tracking_number.upgrade(),
+                carrier.upgrade(),
+            ) else {
+                return;
+            };
             let selected = carrier.selected() as usize;
             dialog.set_response_enabled(
                 "add",
@@ -843,7 +955,11 @@ fn connect_add_dialog_validation(
         let update = update.clone();
         tracking_number.connect_changed(move |_| update());
     }
-    carrier.connect_selected_notify(move |_| update());
+    {
+        let update = update.clone();
+        carrier.connect_selected_notify(move |_| update());
+    }
+    update();
 }
 
 fn clear_add_form(
@@ -858,7 +974,13 @@ fn clear_add_form(
     email.set_text("");
 }
 
-fn submit_new_delivery(ui: &LiveUi, api_key: SecretString, delivery: NewDelivery) {
+fn submit_new_delivery(
+    parent: &adw::ApplicationWindow,
+    ui: &LiveUi,
+    api_key: SecretString,
+    delivery: NewDelivery,
+    choices: Rc<Vec<CarrierChoice>>,
+) {
     if ui.loading.replace(true) {
         return;
     }
@@ -870,11 +992,13 @@ fn submit_new_delivery(ui: &LiveUi, api_key: SecretString, delivery: NewDelivery
     ui.banner.set_revealed(true);
 
     let worker_key = SecretString::from(api_key.expose_secret());
+    let parent = parent.clone();
     let ui = ui.clone();
     gtk::glib::spawn_future_local(async move {
         let result = gio::spawn_blocking(move || {
-            let client = ParcelClient::new(worker_key)?;
-            client.add_delivery(&delivery)
+            let result =
+                ParcelClient::new(worker_key).and_then(|client| client.add_delivery(&delivery));
+            (result, delivery)
         })
         .await;
 
@@ -883,7 +1007,7 @@ fn submit_new_delivery(ui: &LiveUi, api_key: SecretString, delivery: NewDelivery
         ui.add_button.set_sensitive(true);
 
         match result {
-            Ok(Ok(())) => {
+            Ok((Ok(()), _delivery)) => {
                 show_toast(
                     &ui,
                     &tr(
@@ -892,7 +1016,7 @@ fn submit_new_delivery(ui: &LiveUi, api_key: SecretString, delivery: NewDelivery
                 );
                 sync_with_key(&ui, api_key, false);
             }
-            Ok(Err(error)) => {
+            Ok((Err(error), delivery)) => {
                 restore_auxiliary_banner(&ui);
                 let error = error.localized_message();
                 let message = interpolate(
@@ -900,6 +1024,13 @@ fn submit_new_delivery(ui: &LiveUi, api_key: SecretString, delivery: NewDelivery
                     &[("error", &error)],
                 );
                 show_toast(&ui, &message);
+                show_add_delivery_dialog_with_choices(
+                    &parent,
+                    &ui,
+                    api_key,
+                    choices,
+                    Some(delivery),
+                );
             }
             Err(_) => {
                 restore_auxiliary_banner(&ui);
@@ -1768,5 +1899,32 @@ mod tests {
         assert_eq!(choices[0].code, "alpha");
         assert_eq!(choices[1].code, "zeta");
         assert_eq!(choices[0].name, "Alpha Post");
+    }
+
+    #[test]
+    fn carrier_suggestion_uses_the_first_available_parcel_code() {
+        let choices = vec![
+            CarrierChoice {
+                code: "dpdgpcode".into(),
+                name: "DPD Group".into(),
+            },
+            CarrierChoice {
+                code: "ups".into(),
+                name: "UPS".into(),
+            },
+        ];
+
+        assert_eq!(
+            suggested_carrier_index(&choices, "01234567890123", "de_AT"),
+            Some(0)
+        );
+        assert_eq!(
+            suggested_carrier_index(&choices, "1Z5R89390357567127", "de_AT"),
+            Some(1)
+        );
+        assert_eq!(
+            suggested_carrier_index(&choices, "nicht-eindeutig", "de_AT"),
+            None
+        );
     }
 }
