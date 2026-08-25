@@ -1,0 +1,209 @@
+:root {
+  --ankunft-accent: #3584e4;
+  --ankunft-success: #2ec27e;
+  --ankunft-warning: #e5a50a;
+  --ankunft-danger: #e01b24;
+}
+
+.flat-header {
+  border-bottom: 1px solid alpha(currentColor, 0.08);
+}
+
+.sidebar {
+  background: alpha(currentColor, 0.035);
+}
+
+.eyebrow {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: alpha(currentColor, 0.55);
+}
+
+.navigation-list,
+.navigation-list row,
+.delivery-list,
+.delivery-list row {
+  background: transparent;
+}
+
+.navigation-list row {
+  border-radius: 10px;
+  margin: 2px 0;
+}
+
+.navigation-list row:selected {
+  background: alpha(@accent_color, 0.15);
+  color: @accent_color;
+}
+
+.sidebar-count,
+.count-pill {
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: alpha(currentColor, 0.09);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sync-card {
+  padding: 14px;
+  border-radius: 13px;
+  background: alpha(currentColor, 0.045);
+  border: 1px solid alpha(currentColor, 0.07);
+}
+
+.list-column {
+  background: alpha(currentColor, 0.018);
+}
+
+.delivery-row {
+  margin: 4px 0;
+  border-radius: 14px;
+  border: 1px solid transparent;
+}
+
+.delivery-row:hover {
+  background: alpha(currentColor, 0.045);
+}
+
+.delivery-row:selected {
+  background: alpha(@accent_color, 0.11);
+  border-color: alpha(@accent_color, 0.26);
+}
+
+.carrier-badge {
+  border-radius: 12px;
+  background: linear-gradient(145deg, alpha(@accent_color, 0.20), alpha(@accent_color, 0.10));
+  border: 1px solid alpha(@accent_color, 0.18);
+  color: @accent_color;
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+
+.carrier-badge-large {
+  border-radius: 16px;
+  font-size: 0.94rem;
+}
+
+.expected-small {
+  color: @accent_color;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+progressbar trough {
+  min-height: 4px;
+  border-radius: 99px;
+  background: alpha(currentColor, 0.08);
+}
+
+progressbar progress {
+  min-height: 4px;
+  border-radius: 99px;
+  background: @accent_color;
+}
+
+progressbar.status-delivered progress {
+  background: var(--ankunft-success);
+}
+
+progressbar.status-pickup progress {
+  background: var(--ankunft-warning);
+}
+
+progressbar.status-problem progress {
+  background: var(--ankunft-danger);
+}
+
+.detail-surface {
+  background: @window_bg_color;
+}
+
+.hero-card,
+.timeline-card {
+  padding: 20px;
+  border-radius: 18px;
+  background: alpha(currentColor, 0.035);
+  border: 1px solid alpha(currentColor, 0.075);
+  box-shadow: 0 2px 8px alpha(black, 0.06);
+}
+
+.metric-card {
+  padding: 14px;
+  border-radius: 13px;
+  background: alpha(currentColor, 0.04);
+  border: 1px solid alpha(currentColor, 0.06);
+}
+
+.status-chip {
+  padding: 6px 10px;
+  border-radius: 99px;
+}
+
+.status-today {
+  color: @accent_color;
+  background: alpha(@accent_color, 0.13);
+}
+
+.status-transit {
+  color: #1c71d8;
+  background: alpha(#1c71d8, 0.12);
+}
+
+.status-pickup {
+  color: #9c6e03;
+  background: alpha(#e5a50a, 0.15);
+}
+
+.status-delivered {
+  color: #1b8553;
+  background: alpha(#2ec27e, 0.14);
+}
+
+.status-problem {
+  color: #c01c28;
+  background: alpha(#e01b24, 0.13);
+}
+
+.status-muted {
+  color: alpha(currentColor, 0.65);
+  background: alpha(currentColor, 0.07);
+}
+
+.hero-progress trough,
+.hero-progress progress {
+  min-height: 7px;
+}
+
+.live-badge {
+  padding: 3px 7px;
+  border-radius: 99px;
+  background: alpha(#2ec27e, 0.14);
+  color: #1b8553;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.timeline-card {
+  padding: 0;
+}
+
+.timeline-marker-active {
+  color: @accent_color;
+  font-size: 1.05rem;
+}
+
+.timeline-marker {
+  color: alpha(currentColor, 0.35);
+  font-size: 1.05rem;
+}
+
+.timeline-line {
+  min-width: 1px;
+  color: alpha(currentColor, 0.12);
+}
+

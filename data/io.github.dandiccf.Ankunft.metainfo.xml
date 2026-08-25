@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.dandiccf.Ankunft</id>
+  <name>Ankunft</name>
+  <summary>Deine Parcel-Sendungen auf einen Blick</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer_name>Ankunft Contributors</developer_name>
+  <description>
+    <p>
+      Ankunft ist ein moderner GNOME-Client für Parcel Premium mit nativen
+      Benachrichtigungen und einer übersichtlichen Sendungshistorie.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.dandiccf.Ankunft.desktop</launchable>
+  <content_rating type="oars-1.1" />
+</component>

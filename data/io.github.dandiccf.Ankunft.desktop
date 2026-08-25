@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Ankunft
+Comment=Deine Parcel-Sendungen auf einen Blick
+Exec=ankunft
+Icon=io.github.dandiccf.Ankunft
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=Parcel;Paket;Sendung;Tracking;Lieferung;
+StartupNotify=true
