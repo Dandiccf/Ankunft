@@ -814,3 +814,39 @@ msgstr "Bitte gib eine Beschreibung ein."
 #: src/ui/mod.rs
 msgid "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."
 msgstr "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."
+
+#: src/ui/mod.rs
+msgid "Lokal als zugestellt markieren"
+msgstr "Lokal als zugestellt markieren"
+
+#: src/ui/mod.rs
+msgid "Lokale Markierung zurücknehmen"
+msgstr "Lokale Markierung zurücknehmen"
+
+#: src/ui/mod.rs
+msgid "Lokal als zugestellt markiert"
+msgstr "Lokal als zugestellt markiert"
+
+#: src/ui/mod.rs
+msgid "Nur in Ankunft auf diesem Gerät · Parcel-Status: {status}"
+msgstr "Nur in Ankunft auf diesem Gerät · Parcel-Status: {status}"
+
+#: src/ui/mod.rs
+msgid "Weitere Sendungsoptionen"
+msgstr "Weitere Sendungsoptionen"
+
+#: src/ui/mod.rs
+msgid "Die Sendung wurde lokal als zugestellt markiert."
+msgstr "Die Sendung wurde lokal als zugestellt markiert."
+
+#: src/ui/mod.rs
+msgid "Die lokale Markierung wurde zurückgenommen."
+msgstr "Die lokale Markierung wurde zurückgenommen."
+
+#: src/ui/mod.rs
+msgid "Die lokale Markierung konnte nicht gespeichert werden: {error}"
+msgstr "Die lokale Markierung konnte nicht gespeichert werden: {error}"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
+msgstr "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"

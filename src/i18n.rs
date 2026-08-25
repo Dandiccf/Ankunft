@@ -315,7 +315,7 @@ mod tests {
             let catalog = Catalog::from_mo((*locale).to_owned(), bytes)
                 .unwrap_or_else(|| panic!("invalid embedded catalog for {locale}"));
             assert_eq!(catalog.locale, *locale);
-            assert!(catalog.messages.len() >= 200);
+            assert!(catalog.messages.len() >= 209);
             let delivered = match *locale {
                 "de" => "Zugestellt",
                 "en" => "Delivered",
@@ -358,6 +358,26 @@ mod tests {
                     .messages
                     .get("Sendung konnte nicht hinzugefügt werden: {error}")
                     .is_some_and(|translation| translation.contains("{error}"))
+            );
+            assert!(
+                catalog
+                    .messages
+                    .get("Nur in Ankunft auf diesem Gerät · Parcel-Status: {status}")
+                    .is_some_and(|translation| translation.contains("{status}"))
+            );
+            assert!(
+                catalog
+                    .messages
+                    .get("Die lokale Markierung konnte nicht gespeichert werden: {error}")
+                    .is_some_and(|translation| translation.contains("{error}"))
+            );
+            assert!(
+                catalog
+                    .messages
+                    .get(
+                        "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}",
+                    )
+                    .is_some_and(|translation| translation.contains("{0}"))
             );
         }
     }

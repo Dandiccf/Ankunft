@@ -814,3 +814,39 @@ msgstr "Inserisci una descrizione."
 #: src/ui/mod.rs
 msgid "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."
 msgstr "Suggerito in base al numero di tracciamento: verifica la selezione."
+
+#: src/ui/mod.rs
+msgid "Lokal als zugestellt markieren"
+msgstr "Segna localmente come consegnata"
+
+#: src/ui/mod.rs
+msgid "Lokale Markierung zurücknehmen"
+msgstr "Annulla la marcatura locale"
+
+#: src/ui/mod.rs
+msgid "Lokal als zugestellt markiert"
+msgstr "Segnata localmente come consegnata"
+
+#: src/ui/mod.rs
+msgid "Nur in Ankunft auf diesem Gerät · Parcel-Status: {status}"
+msgstr "Solo in Ankunft su questo dispositivo · Stato Parcel: {status}"
+
+#: src/ui/mod.rs
+msgid "Weitere Sendungsoptionen"
+msgstr "Altre opzioni per la spedizione"
+
+#: src/ui/mod.rs
+msgid "Die Sendung wurde lokal als zugestellt markiert."
+msgstr "La spedizione è stata segnata localmente come consegnata."
+
+#: src/ui/mod.rs
+msgid "Die lokale Markierung wurde zurückgenommen."
+msgstr "La marcatura locale è stata annullata."
+
+#: src/ui/mod.rs
+msgid "Die lokale Markierung konnte nicht gespeichert werden: {error}"
+msgstr "Impossibile salvare la marcatura locale: {error}"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
+msgstr "L'archivio locale delle spedizioni è stato aggiornato, ma non è stato possibile confermarne il salvataggio permanente: {0}"

@@ -106,6 +106,12 @@ pub struct Delivery {
     pub description: String,
     pub tracking_number: String,
     pub status: DeliveryStatus,
+    /// A presentation-only status chosen by the user in Ankunft.
+    ///
+    /// Parcel's status remains in `status`, which keeps notifications and a
+    /// later API update independent from this reversible local choice.
+    #[serde(default)]
+    pub local_status_override: Option<DeliveryStatus>,
     pub expected: Option<String>,
     pub expected_detail: Option<String>,
     pub expected_timestamp: Option<i64>,
@@ -116,6 +122,25 @@ pub struct Delivery {
 }
 
 impl Delivery {
+    pub fn effective_status(&self) -> DeliveryStatus {
+        self.local_status_override.unwrap_or(self.status)
+    }
+
+    pub fn is_locally_delivered(&self) -> bool {
+        self.status != DeliveryStatus::Delivered
+            && self.local_status_override == Some(DeliveryStatus::Delivered)
+    }
+
+    pub fn mark_locally_delivered(&mut self) {
+        if self.status != DeliveryStatus::Delivered {
+            self.local_status_override = Some(DeliveryStatus::Delivered);
+        }
+    }
+
+    pub fn clear_local_status_override(&mut self) {
+        self.local_status_override = None;
+    }
+
     pub fn initials(&self) -> String {
         self.carrier_name
             .split_whitespace()
@@ -141,18 +166,45 @@ const MAX_RECENT_DELIVERIES: usize = 200;
 ///
 /// Fresh API entries always win. Their order is preserved, duplicate API
 /// entries are removed, and only previously delivered entries that are absent
-/// from the API response are appended. The retained archive never grows the
-/// result beyond 200 entries, unless the unique API response itself is larger.
+/// from the API response are appended. Explicit local delivery marks are never
+/// discarded; passive history is capped once the result reaches 200 entries.
 pub(crate) fn merge_delivered_history(
-    current: Vec<Delivery>,
+    mut current: Vec<Delivery>,
     previous: &[Delivery],
 ) -> Vec<Delivery> {
+    let locally_delivered = previous
+        .iter()
+        .filter(|delivery| delivery.is_locally_delivered())
+        .map(delivery_key)
+        .collect::<HashSet<_>>();
+
+    for delivery in &mut current {
+        if delivery.status == DeliveryStatus::Delivered {
+            // Parcel has caught up with the local choice. The effective status
+            // stays delivered, but the local override is no longer needed.
+            delivery.clear_local_status_override();
+        } else if locally_delivered.contains(&delivery_key(delivery)) {
+            delivery.mark_locally_delivered();
+        }
+    }
+
     let mut seen = HashSet::with_capacity(current.len().saturating_add(previous.len()));
     let mut merged = Vec::with_capacity(current.len().min(MAX_RECENT_DELIVERIES));
 
     for delivery in current {
         if seen.insert(delivery_key(&delivery)) {
             merged.push(delivery);
+        }
+    }
+
+    // A user's explicit local decision is protected from the passive archive
+    // limit, even if Parcel itself already returns 200 or more unique rows.
+    for delivery in previous
+        .iter()
+        .filter(|delivery| delivery.is_locally_delivered())
+    {
+        if seen.insert(delivery_key(delivery)) {
+            merged.push(delivery.clone());
         }
     }
 
@@ -174,7 +226,7 @@ pub(crate) fn merge_delivered_history(
 
 fn delivery_key(delivery: &Delivery) -> (String, String) {
     (
-        delivery.carrier_code.trim().to_owned(),
+        delivery.carrier_code.trim().to_ascii_lowercase(),
         delivery.tracking_number.trim().to_owned(),
     )
 }
@@ -187,6 +239,7 @@ pub fn demo_deliveries() -> Vec<Delivery> {
             description: tr("AirPods Zubehör"),
             tracking_number: "AT •••• 4821".into(),
             status: DeliveryStatus::OutForDelivery,
+            local_status_override: None,
             expected: Some(tr("Heute")),
             expected_detail: Some(tr("zwischen 12:10 und 14:40 Uhr")),
             expected_timestamp: None,
@@ -220,6 +273,7 @@ pub fn demo_deliveries() -> Vec<Delivery> {
             description: tr("Kaffeebohnen"),
             tracking_number: "DPD •••• 7604".into(),
             status: DeliveryStatus::InTransit,
+            local_status_override: None,
             expected: Some(tr("Morgen")),
             expected_detail: Some(tr("bis zum Ende des Tages")),
             expected_timestamp: None,
@@ -247,6 +301,7 @@ pub fn demo_deliveries() -> Vec<Delivery> {
             description: tr("Bücherbestellung"),
             tracking_number: "GLS •••• 1938".into(),
             status: DeliveryStatus::ReadyForPickup,
+            local_status_override: None,
             expected: Some(tr("Abholbereit")),
             expected_detail: Some(tr("noch 4 Tage im PaketShop")),
             expected_timestamp: None,
@@ -274,6 +329,7 @@ pub fn demo_deliveries() -> Vec<Delivery> {
             description: tr("Entwicklerboard"),
             tracking_number: "DHL •••• 5092".into(),
             status: DeliveryStatus::InformationReceived,
+            local_status_override: None,
             expected: Some(tr("Freitag")),
             expected_detail: Some(tr("Termin wird noch bestätigt")),
             expected_timestamp: None,
@@ -293,6 +349,7 @@ pub fn demo_deliveries() -> Vec<Delivery> {
             description: tr("Monitorarm"),
             tracking_number: "UPS •••• 0447".into(),
             status: DeliveryStatus::Delivered,
+            local_status_override: None,
             expected: Some(tr("Zugestellt")),
             expected_detail: Some(tr("Montag um 10:17 Uhr")),
             expected_timestamp: None,
@@ -333,6 +390,7 @@ mod tests {
             description: description.into(),
             tracking_number: tracking.into(),
             status,
+            local_status_override: None,
             expected: None,
             expected_detail: None,
             expected_timestamp: None,
@@ -403,6 +461,63 @@ mod tests {
     }
 
     #[test]
+    fn local_delivered_override_is_reversible_without_changing_parcel_status() {
+        let mut delivery = delivery("post", "local", DeliveryStatus::InTransit, "local override");
+
+        delivery.mark_locally_delivered();
+        assert_eq!(delivery.status, DeliveryStatus::InTransit);
+        assert_eq!(delivery.effective_status(), DeliveryStatus::Delivered);
+        assert!(delivery.is_locally_delivered());
+
+        delivery.clear_local_status_override();
+        assert_eq!(delivery.status, DeliveryStatus::InTransit);
+        assert_eq!(delivery.effective_status(), DeliveryStatus::InTransit);
+        assert!(!delivery.is_locally_delivered());
+    }
+
+    #[test]
+    fn sync_keeps_local_override_until_parcel_confirms_delivery() {
+        let mut previous = delivery("POST", " local ", DeliveryStatus::InTransit, "cached");
+        previous.mark_locally_delivered();
+
+        let still_active = merge_delivered_history(
+            vec![delivery(
+                "post",
+                "local",
+                DeliveryStatus::OutForDelivery,
+                "fresh",
+            )],
+            std::slice::from_ref(&previous),
+        );
+        assert_eq!(still_active[0].status, DeliveryStatus::OutForDelivery);
+        assert!(still_active[0].is_locally_delivered());
+
+        let confirmed = merge_delivered_history(
+            vec![delivery(
+                "post",
+                "local",
+                DeliveryStatus::Delivered,
+                "confirmed",
+            )],
+            &[previous],
+        );
+        assert_eq!(confirmed[0].status, DeliveryStatus::Delivered);
+        assert_eq!(confirmed[0].local_status_override, None);
+        assert!(!confirmed[0].is_locally_delivered());
+    }
+
+    #[test]
+    fn locally_delivered_missing_api_entry_stays_in_recent_history() {
+        let mut previous = delivery("post", "local", DeliveryStatus::Frozen, "cached");
+        previous.mark_locally_delivered();
+
+        let merged = merge_delivered_history(Vec::new(), &[previous]);
+
+        assert_eq!(merged.len(), 1);
+        assert!(merged[0].is_locally_delivered());
+    }
+
+    #[test]
     fn caps_only_the_appended_archive_at_two_hundred_entries() {
         let current = (0..198)
             .map(|index| {
@@ -441,5 +556,38 @@ mod tests {
             .collect();
         let merged = merge_delivered_history(oversized_current, &previous);
         assert_eq!(merged.len(), 205);
+    }
+
+    #[test]
+    fn local_marks_are_preserved_ahead_of_the_passive_archive_limit() {
+        let current = (0..MAX_RECENT_DELIVERIES)
+            .map(|index| {
+                delivery(
+                    "current",
+                    &format!("current-{index}"),
+                    DeliveryStatus::InTransit,
+                    "current",
+                )
+            })
+            .collect();
+        let mut local = delivery("archive", "local-choice", DeliveryStatus::Frozen, "local");
+        local.mark_locally_delivered();
+        let passive = delivery(
+            "archive",
+            "passive-history",
+            DeliveryStatus::Delivered,
+            "passive",
+        );
+
+        let merged = merge_delivered_history(current, &[local, passive]);
+
+        assert_eq!(merged.len(), MAX_RECENT_DELIVERIES + 1);
+        assert_eq!(merged.last().unwrap().tracking_number, "local-choice");
+        assert!(merged.last().unwrap().is_locally_delivered());
+        assert!(
+            merged
+                .iter()
+                .all(|delivery| delivery.tracking_number != "passive-history")
+        );
     }
 }

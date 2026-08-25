@@ -92,7 +92,7 @@ struct DeliveryKey {
 impl DeliveryKey {
     fn from_delivery(delivery: &Delivery) -> Self {
         Self {
-            carrier_code: delivery.carrier_code.trim().to_owned(),
+            carrier_code: delivery.carrier_code.trim().to_ascii_lowercase(),
             tracking_number: delivery.tracking_number.trim().to_owned(),
         }
     }
@@ -259,6 +259,7 @@ mod tests {
             description: format!("Bestellung {SECRET_TRACKING_NUMBER}"),
             tracking_number: SECRET_TRACKING_NUMBER.to_owned(),
             status,
+            local_status_override: None,
             expected: None,
             expected_detail: None,
             expected_timestamp: None,
@@ -282,6 +283,34 @@ mod tests {
 
         assert_eq!(plan.changed_deliveries, 0);
         assert!(plan.payload.is_none());
+    }
+
+    #[test]
+    fn local_delivered_override_does_not_create_a_parcel_notification() {
+        let previous = delivery(DeliveryStatus::InTransit);
+        let mut current = previous.clone();
+        current.mark_locally_delivered();
+
+        let previous = snapshot(vec![previous]);
+        let plan = build_notification_plan(Some(&previous), &[current]);
+
+        assert_eq!(plan.changed_deliveries, 0);
+        assert!(plan.payload.is_none());
+    }
+
+    #[test]
+    fn carrier_code_case_does_not_hide_a_real_status_change() {
+        let mut previous = delivery(DeliveryStatus::InTransit);
+        previous.carrier_code = " POST ".to_owned();
+        previous.mark_locally_delivered();
+        let mut current = delivery(DeliveryStatus::Delivered);
+        current.carrier_code = "post".to_owned();
+
+        let previous = snapshot(vec![previous]);
+        let plan = build_notification_plan(Some(&previous), &[current]);
+
+        assert_eq!(plan.changed_deliveries, 1);
+        assert!(plan.payload.is_some());
     }
 
     #[test]

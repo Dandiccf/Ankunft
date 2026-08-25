@@ -68,6 +68,7 @@ impl ApiDelivery {
             description: self.description,
             tracking_number: self.tracking_number,
             status,
+            local_status_override: None,
             expected: self.date_expected,
             expected_detail: self.date_expected_end,
             expected_timestamp: self.timestamp_expected,

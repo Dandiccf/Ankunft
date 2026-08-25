@@ -40,6 +40,13 @@ Geplante Module:
 Die API liefert keine Sendungs-ID. Intern wird deshalb das Paar aus
 `carrier_code` und `tracking_number` als stabiler Schlüssel verwendet.
 
+Eine manuelle „zugestellt“-Markierung bleibt ausschließlich im privaten
+Offline-Snapshot. Der originale Parcel-Status bleibt getrennt erhalten und ist
+weiterhin die einzige Quelle für Benachrichtigungen. Meldet Parcel später selbst
+„zugestellt“, wird die lokale Überschreibung beim atomaren Snapshot-Update
+entfernt. Cache-Schema 2 verhindert, dass ältere Builds diese Markierungen beim
+Zurückschreiben unbemerkt verlieren.
+
 Zeitangaben ohne Epoch-Zeitstempel werden nicht interpretiert, weil ihnen eine
 garantierte Zeitzone fehlt. Sie werden so dargestellt, wie Parcel sie liefert.
 

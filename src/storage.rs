@@ -26,7 +26,8 @@ use crate::{
     model::Delivery,
 };
 
-const SCHEMA_VERSION: u32 = 1;
+const LEGACY_SCHEMA_VERSION: u32 = 1;
+const SCHEMA_VERSION: u32 = 2;
 const CACHE_DIRECTORY: &str = "io.github.dandiccf.Ankunft";
 const MAX_CACHE_BYTES: u64 = 16 * 1024 * 1024;
 pub const CACHE_FILE_NAME: &str = "deliveries-v1.json";
@@ -93,6 +94,10 @@ impl CacheDocument {
 pub enum StorageError {
     #[error("Der lokale Sendungsspeicher konnte nicht gelesen oder geschrieben werden: {0}")]
     Io(#[from] io::Error),
+    #[error(
+        "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
+    )]
+    DurabilityUncertain(#[source] io::Error),
     #[error("Der lokale Sendungsspeicher ist beschädigt: {0}")]
     InvalidJson(#[from] serde_json::Error),
     #[error(
@@ -110,6 +115,10 @@ pub enum StorageError {
 }
 
 impl StorageError {
+    pub fn write_was_committed(&self) -> bool {
+        matches!(self, Self::DurabilityUncertain(_))
+    }
+
     pub fn localized_message(&self) -> String {
         match self {
             Self::Io(error) => {
@@ -117,6 +126,15 @@ impl StorageError {
                 interpolate(
                     tr(
                         "Der lokale Sendungsspeicher konnte nicht gelesen oder geschrieben werden: {0}",
+                    ),
+                    &[("0", &error)],
+                )
+            }
+            Self::DurabilityUncertain(error) => {
+                let error = error.to_string();
+                interpolate(
+                    tr(
+                        "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}",
                     ),
                     &[("0", &error)],
                 )
@@ -242,7 +260,7 @@ impl DeliveryCache {
                 // only means its crash durability is uncertain, so keeping the
                 // in-memory state aligned with the visible file is safest.
                 *state = next;
-                return Err(StorageError::Io(failure.source));
+                return Err(StorageError::DurabilityUncertain(failure.source));
             }
             Err(failure) => return Err(StorageError::Io(failure.source)),
         }
@@ -260,7 +278,7 @@ impl DeliveryCache {
             Ok(()) => *state = next,
             Err(failure) if failure.renamed => {
                 *state = next;
-                return Err(StorageError::Io(failure.source));
+                return Err(StorageError::DurabilityUncertain(failure.source));
             }
             Err(failure) => return Err(StorageError::Io(failure.source)),
         }
@@ -309,12 +327,16 @@ fn load_document(path: &Path) -> Result<CacheDocument, StorageError> {
         });
     }
 
-    let document: CacheDocument = serde_json::from_slice(&bytes)?;
-    if document.schema_version != SCHEMA_VERSION {
-        return Err(StorageError::UnsupportedVersion {
-            found: document.schema_version,
-            expected: SCHEMA_VERSION,
-        });
+    let mut document: CacheDocument = serde_json::from_slice(&bytes)?;
+    match document.schema_version {
+        SCHEMA_VERSION => {}
+        LEGACY_SCHEMA_VERSION => document.schema_version = SCHEMA_VERSION,
+        found => {
+            return Err(StorageError::UnsupportedVersion {
+                found,
+                expected: SCHEMA_VERSION,
+            });
+        }
     }
 
     Ok(document)
@@ -449,7 +471,7 @@ fn create_private_temporary_file(parent: &Path, destination: &Path) -> io::Resul
 
 fn storage_error_to_io(error: StorageError) -> io::Error {
     match error {
-        StorageError::Io(error) => error,
+        StorageError::Io(error) | StorageError::DurabilityUncertain(error) => error,
         other => io::Error::new(io::ErrorKind::InvalidInput, other.to_string()),
     }
 }
@@ -525,6 +547,35 @@ mod tests {
         assert_eq!(recent.fetched_at_unix_secs, 1_800_000_100);
         assert_eq!(recent.deliveries.len(), 1);
         assert_eq!(recent.deliveries[0].description, tr("Monitorarm"));
+    }
+
+    #[test]
+    fn local_status_override_survives_restart_without_replacing_parcel_status() {
+        let directory = TestDirectory::new("local-override");
+        let cache = DeliveryCache::open_in(&directory.0).expect("open cache");
+        let mut delivery = crate::model::demo_deliveries()[0].clone();
+        let parcel_status = delivery.status;
+        delivery.mark_locally_delivered();
+
+        cache
+            .replace_snapshot(SnapshotKind::Recent, 1_800_000_000, vec![delivery])
+            .expect("write local override");
+        drop(cache);
+
+        let reopened = DeliveryCache::open_in(&directory.0).expect("reopen cache");
+        let stored = reopened
+            .snapshot(SnapshotKind::Recent)
+            .expect("read recent")
+            .expect("recent snapshot")
+            .deliveries
+            .remove(0);
+
+        assert_eq!(stored.status, parcel_status);
+        assert!(stored.is_locally_delivered());
+        assert_eq!(
+            stored.effective_status(),
+            crate::model::DeliveryStatus::Delivered
+        );
     }
 
     #[test]
@@ -609,6 +660,28 @@ mod tests {
                 expected: SCHEMA_VERSION
             }
         ));
+    }
+
+    #[test]
+    fn migrates_version_one_before_the_next_atomic_write() {
+        let directory = TestDirectory::new("migration");
+        ensure_private_directory(&directory.0).expect("create state directory");
+        let path = directory.0.join(CACHE_FILE_NAME);
+        fs::write(
+            &path,
+            br#"{"schema_version":1,"active":null,"recent":null}"#,
+        )
+        .expect("write legacy cache");
+
+        let cache = DeliveryCache::open_in(&directory.0).expect("open legacy cache");
+        cache
+            .replace_snapshot(SnapshotKind::Recent, 10, Vec::new())
+            .expect("write migrated cache");
+        let stored: serde_json::Value =
+            serde_json::from_slice(&fs::read(path).expect("read migrated cache"))
+                .expect("parse migrated cache");
+
+        assert_eq!(stored["schema_version"], SCHEMA_VERSION);
     }
 
     #[test]

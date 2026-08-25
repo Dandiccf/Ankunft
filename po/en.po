@@ -814,3 +814,39 @@ msgstr "Please enter a description."
 #: src/ui/mod.rs
 msgid "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."
 msgstr "Suggested from the tracking number — please verify."
+
+#: src/ui/mod.rs
+msgid "Lokal als zugestellt markieren"
+msgstr "Mark as delivered locally"
+
+#: src/ui/mod.rs
+msgid "Lokale Markierung zurücknehmen"
+msgstr "Undo local mark"
+
+#: src/ui/mod.rs
+msgid "Lokal als zugestellt markiert"
+msgstr "Marked as delivered locally"
+
+#: src/ui/mod.rs
+msgid "Nur in Ankunft auf diesem Gerät · Parcel-Status: {status}"
+msgstr "Only in Ankunft on this device · Parcel status: {status}"
+
+#: src/ui/mod.rs
+msgid "Weitere Sendungsoptionen"
+msgstr "More shipment options"
+
+#: src/ui/mod.rs
+msgid "Die Sendung wurde lokal als zugestellt markiert."
+msgstr "Shipment marked as delivered locally."
+
+#: src/ui/mod.rs
+msgid "Die lokale Markierung wurde zurückgenommen."
+msgstr "Local mark removed."
+
+#: src/ui/mod.rs
+msgid "Die lokale Markierung konnte nicht gespeichert werden: {error}"
+msgstr "Could not save the local mark: {error}"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
+msgstr "The local shipment store was updated, but its durable persistence could not be confirmed: {0}"

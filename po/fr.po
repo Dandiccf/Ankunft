@@ -814,3 +814,39 @@ msgstr "Veuillez saisir une description."
 #: src/ui/mod.rs
 msgid "Aus der Sendungsnummer vorgeschlagen – bitte prüfen."
 msgstr "Suggéré à partir du numéro de suivi — veuillez vérifier."
+
+#: src/ui/mod.rs
+msgid "Lokal als zugestellt markieren"
+msgstr "Marquer comme livré localement"
+
+#: src/ui/mod.rs
+msgid "Lokale Markierung zurücknehmen"
+msgstr "Annuler le marquage local"
+
+#: src/ui/mod.rs
+msgid "Lokal als zugestellt markiert"
+msgstr "Marqué comme livré localement"
+
+#: src/ui/mod.rs
+msgid "Nur in Ankunft auf diesem Gerät · Parcel-Status: {status}"
+msgstr "Uniquement dans Ankunft sur cet appareil · Statut Parcel : {status}"
+
+#: src/ui/mod.rs
+msgid "Weitere Sendungsoptionen"
+msgstr "Plus d’options pour l’envoi"
+
+#: src/ui/mod.rs
+msgid "Die Sendung wurde lokal als zugestellt markiert."
+msgstr "L’envoi a été marqué comme livré localement."
+
+#: src/ui/mod.rs
+msgid "Die lokale Markierung wurde zurückgenommen."
+msgstr "Le marquage local a été annulé."
+
+#: src/ui/mod.rs
+msgid "Die lokale Markierung konnte nicht gespeichert werden: {error}"
+msgstr "Impossible d’enregistrer le marquage local : {error}"
+
+#: src/storage.rs
+msgid "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
+msgstr "Le stockage local des envois a été mis à jour, mais son écriture durable n’a pas pu être confirmée : {0}"

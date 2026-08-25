@@ -13,6 +13,8 @@ API.
 - three-column delivery overview with search and status filters
 - dedicated delivered-shipment view with a private local history of completed
   deliveries observed by Ankunft
+- reversible, device-local “delivered” marks without changing Parcel account
+  data or generating artificial status notifications
 - detailed event timeline and delivery estimates
 - add-delivery assistant with live carrier filtering, private local carrier
   suggestions, and optional postcode or email details

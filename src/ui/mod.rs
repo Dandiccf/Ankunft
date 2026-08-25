@@ -106,31 +106,61 @@ struct DetailView {
     expected_detail: gtk::Label,
     progress: gtk::ProgressBar,
     timeline: gtk::Box,
+    detail_menu: gio::Menu,
+    local_delivery_action: gtk::glib::WeakRef<gio::SimpleAction>,
+    using_real_data: Rc<Cell<bool>>,
 }
 
 impl DetailView {
     fn update(&self, delivery: &Delivery) {
+        let status = delivery.effective_status();
         self.stack.set_visible_child_name("delivery");
         self.carrier_badge.set_label(&delivery.initials());
         self.carrier_name.set_label(&delivery.carrier_name);
         self.description.set_label(&delivery.description);
         self.tracking_number.set_label(&delivery.tracking_number);
-        self.status_icon
-            .set_icon_name(Some(delivery.status.icon_name()));
-        self.status_label.set_label(&delivery.status.label());
+        self.status_icon.set_icon_name(Some(status.icon_name()));
+        self.status_label
+            .set_label(&delivery_status_label(delivery));
         let expected = delivery
             .expected
             .clone()
             .unwrap_or_else(|| tr("Noch offen"));
         self.expected.set_label(&expected);
-        self.expected_detail
-            .set_label(delivery.expected_detail.as_deref().unwrap_or(""));
+        let expected_detail = if delivery.is_locally_delivered() {
+            let parcel_status = delivery.status.label();
+            interpolate(
+                tr("Nur in Ankunft auf diesem Gerät · Parcel-Status: {status}"),
+                &[("status", &parcel_status)],
+            )
+        } else {
+            delivery.expected_detail.clone().unwrap_or_default()
+        };
+        self.expected_detail.set_label(&expected_detail);
         self.progress.set_fraction(delivery.status.progress());
 
         for class in STATUS_CLASSES {
             self.status_box.remove_css_class(class);
         }
-        self.status_box.add_css_class(delivery.status.css_class());
+        self.status_box.add_css_class(status.css_class());
+
+        while self.detail_menu.n_items() > 1 {
+            self.detail_menu.remove(1);
+        }
+        let can_change_local_status = self.using_real_data.get()
+            && (delivery.status != DeliveryStatus::Delivered || delivery.is_locally_delivered());
+        if can_change_local_status {
+            let label = if delivery.is_locally_delivered() {
+                tr("Lokale Markierung zurücknehmen")
+            } else {
+                tr("Lokal als zugestellt markieren")
+            };
+            self.detail_menu
+                .append(Some(&label), Some("win.toggle-local-delivery"));
+        }
+        if let Some(action) = self.local_delivery_action.upgrade() {
+            action.set_enabled(can_change_local_status);
+        }
 
         while let Some(child) = self.timeline.first_child() {
             self.timeline.remove(&child);
@@ -164,6 +194,12 @@ impl DetailView {
         self.empty_page.set_title(title);
         self.empty_page.set_description(Some(description));
         self.stack.set_visible_child_name("empty");
+        while self.detail_menu.n_items() > 1 {
+            self.detail_menu.remove(1);
+        }
+        if let Some(action) = self.local_delivery_action.upgrade() {
+            action.set_enabled(false);
+        }
     }
 }
 
@@ -173,6 +209,7 @@ pub fn build_window(app: &adw::Application) {
     let current_filter = Rc::new(RefCell::new(DeliveryFilter::Active));
     let visible_indices = Rc::new(RefCell::new(Vec::<usize>::new()));
     let search_query = Rc::new(RefCell::new(String::new()));
+    let using_real_data = Rc::new(Cell::new(cached_at.is_some()));
 
     let window = adw::ApplicationWindow::builder()
         .application(app)
@@ -182,6 +219,10 @@ pub fn build_window(app: &adw::Application) {
         .width_request(900)
         .height_request(620)
         .build();
+
+    let local_delivery_action = gio::SimpleAction::new("toggle-local-delivery", None);
+    local_delivery_action.set_enabled(false);
+    window.add_action(&local_delivery_action);
 
     let toast_overlay = adw::ToastOverlay::new();
     window.set_content(Some(&toast_overlay));
@@ -290,7 +331,11 @@ pub fn build_window(app: &adw::Application) {
     list_column.append(&delivery_scroll);
     content_paned.set_start_child(Some(&list_column));
 
-    let (detail_widget, detail_view) = build_detail_view(&toast_overlay);
+    let (detail_widget, detail_view) = build_detail_view(
+        &toast_overlay,
+        &local_delivery_action,
+        Rc::clone(&using_real_data),
+    );
     content_paned.set_end_child(Some(&detail_widget));
 
     let rebuild: Rc<dyn Fn()> = {
@@ -315,7 +360,7 @@ pub fn build_window(app: &adw::Application) {
                 .iter()
                 .enumerate()
                 .filter(|(_, delivery)| {
-                    filter.matches(delivery.status) && delivery.matches_query(&query)
+                    filter.matches(delivery.effective_status()) && delivery.matches_query(&query)
                 })
                 .map(|(index, _)| index)
                 .collect();
@@ -411,7 +456,7 @@ pub fn build_window(app: &adw::Application) {
         loading: Rc::new(Cell::new(false)),
         dialog_open: Rc::new(Cell::new(false)),
         cache,
-        using_real_data: Rc::new(Cell::new(cached_at.is_some())),
+        using_real_data,
         last_fetched_at: Rc::new(Cell::new(cached_at)),
         banner_action: Rc::new(Cell::new(BannerAction::Connect)),
     };
@@ -421,6 +466,22 @@ pub fn build_window(app: &adw::Application) {
         let live_ui = live_ui.clone();
         refresh_button.connect_clicked(move |_| {
             restore_connection(&window, &live_ui, true, false);
+        });
+    }
+
+    {
+        let delivery_list = delivery_list.clone();
+        let visible_indices = visible_indices.clone();
+        let live_ui = live_ui.clone();
+        local_delivery_action.connect_activate(move |action, _| {
+            let Some(row) = delivery_list.selected_row() else {
+                return;
+            };
+            let Some(delivery_index) = visible_indices.borrow().get(row.index() as usize).copied()
+            else {
+                return;
+            };
+            toggle_local_delivery(&live_ui, action, delivery_index);
         });
     }
 
@@ -1142,6 +1203,9 @@ fn sync_with_key(ui: &LiveUi, api_key: SecretString, persist_key: bool) {
                             deliveries.clone(),
                         ) {
                             Ok(previous) => (deliveries, previous, None),
+                            Err(error) if error.write_was_committed() => {
+                                (deliveries, cached_snapshot, Some(error))
+                            }
                             Err(error) => (deliveries, None, Some(error)),
                         }
                     }
@@ -1178,7 +1242,10 @@ fn sync_with_key(ui: &LiveUi, api_key: SecretString, persist_key: bool) {
                 update_sidebar(&ui.sidebar, &ui.deliveries.borrow(), key_stored);
                 (ui.rebuild)();
 
-                if cache_error.is_none() {
+                if cache_error
+                    .as_ref()
+                    .is_none_or(|error| error.write_was_committed())
+                {
                     notifications::notify_delivery_status_changes(
                         &ui.application,
                         previous_snapshot.as_ref(),
@@ -1187,11 +1254,16 @@ fn sync_with_key(ui: &LiveUi, api_key: SecretString, persist_key: bool) {
                 }
 
                 if let Some(error) = cache_error {
+                    let committed = error.write_was_committed();
                     let error = error.localized_message();
-                    let message = interpolate(
-                        tr("Live-Daten geladen, aber nicht offline gespeichert: {error}"),
-                        &[("error", &error)],
-                    );
+                    let message = if committed {
+                        error
+                    } else {
+                        interpolate(
+                            tr("Live-Daten geladen, aber nicht offline gespeichert: {error}"),
+                            &[("error", &error)],
+                        )
+                    };
                     show_toast(&ui, &message);
                 }
 
@@ -1276,12 +1348,17 @@ fn confirm_disconnect(parent: &adw::ApplicationWindow, ui: &LiveUi) {
                 let cache_warning = if let Some(cache) = ui.cache.clone() {
                     match gio::spawn_blocking(move || cache.clear()).await {
                         Ok(Ok(())) => None,
-                        Ok(Err(error)) => Some(error.localized_message()),
-                        Err(_) => Some(tr("Der Offline-Speicher antwortet nicht.")),
+                        Ok(Err(error)) => {
+                            Some((error.write_was_committed(), error.localized_message()))
+                        }
+                        Err(_) => Some((false, tr("Der Offline-Speicher antwortet nicht."))),
                     }
                 } else {
-                    Some(tr(
-                        "Der Offline-Speicher war beim Start nicht verfügbar; lokale Sendungsdaten konnten nicht entfernt werden.",
+                    Some((
+                        false,
+                        tr(
+                            "Der Offline-Speicher war beim Start nicht verfügbar; lokale Sendungsdaten konnten nicht entfernt werden.",
+                        ),
                     ))
                 };
 
@@ -1291,11 +1368,15 @@ fn confirm_disconnect(parent: &adw::ApplicationWindow, ui: &LiveUi) {
                 (ui.rebuild)();
                 show_disconnected(&ui);
                 show_toast(&ui, &tr("Parcel-Verbindung wurde entfernt"));
-                if let Some(warning) = cache_warning {
-                    let message = interpolate(
-                        tr("Offline-Daten nicht entfernt: {warning}"),
-                        &[("warning", &warning)],
-                    );
+                if let Some((committed, warning)) = cache_warning {
+                    let message = if committed {
+                        warning
+                    } else {
+                        interpolate(
+                            tr("Offline-Daten nicht entfernt: {warning}"),
+                            &[("warning", &warning)],
+                        )
+                    };
                     show_toast(&ui, &message);
                 }
             }
@@ -1334,6 +1415,109 @@ fn show_toast(ui: &LiveUi, message: &str) {
     let toast = adw::Toast::new(message);
     toast.set_timeout(4);
     ui.toast_overlay.add_toast(toast);
+}
+
+fn toggle_local_delivery(ui: &LiveUi, action: &gio::SimpleAction, delivery_index: usize) {
+    if ui.loading.replace(true) {
+        return;
+    }
+
+    let Some(cache) = ui.cache.clone() else {
+        ui.loading.set(false);
+        let error = tr("Der Offline-Speicher antwortet nicht.");
+        let message = interpolate(
+            tr("Die lokale Markierung konnte nicht gespeichert werden: {error}"),
+            &[("error", &error)],
+        );
+        show_toast(ui, &message);
+        return;
+    };
+
+    let mut next_deliveries = ui.deliveries.borrow().clone();
+    let Some(delivery) = next_deliveries.get_mut(delivery_index) else {
+        ui.loading.set(false);
+        return;
+    };
+
+    let removed = if delivery.is_locally_delivered() {
+        delivery.clear_local_status_override();
+        true
+    } else if delivery.status != DeliveryStatus::Delivered {
+        delivery.mark_locally_delivered();
+        false
+    } else {
+        ui.loading.set(false);
+        return;
+    };
+
+    action.set_enabled(false);
+    let action = action.downgrade();
+    ui.refresh_button.set_sensitive(false);
+    ui.add_button.set_sensitive(false);
+    let fetched_at = ui.last_fetched_at.get().unwrap_or_else(|| {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+    });
+    let persisted_deliveries = next_deliveries.clone();
+    let ui = ui.clone();
+    gtk::glib::spawn_future_local(async move {
+        let result = gio::spawn_blocking(move || {
+            cache.replace_snapshot(SnapshotKind::Recent, fetched_at, persisted_deliveries)
+        })
+        .await;
+
+        ui.loading.set(false);
+        ui.refresh_button.set_sensitive(true);
+        ui.add_button.set_sensitive(true);
+
+        match result {
+            Ok(Ok(_)) => {
+                apply_local_delivery_update(&ui, next_deliveries);
+                show_toast(
+                    &ui,
+                    &tr(if removed {
+                        "Die lokale Markierung wurde zurückgenommen."
+                    } else {
+                        "Die Sendung wurde lokal als zugestellt markiert."
+                    }),
+                );
+            }
+            Ok(Err(error)) if error.write_was_committed() => {
+                apply_local_delivery_update(&ui, next_deliveries);
+                show_toast(&ui, &error.localized_message());
+            }
+            Ok(Err(error)) => {
+                if let Some(action) = action.upgrade() {
+                    action.set_enabled(true);
+                }
+                let error = error.localized_message();
+                let message = interpolate(
+                    tr("Die lokale Markierung konnte nicht gespeichert werden: {error}"),
+                    &[("error", &error)],
+                );
+                show_toast(&ui, &message);
+            }
+            Err(_) => {
+                if let Some(action) = action.upgrade() {
+                    action.set_enabled(true);
+                }
+                let error = tr("Der Offline-Speicher antwortet nicht.");
+                let message = interpolate(
+                    tr("Die lokale Markierung konnte nicht gespeichert werden: {error}"),
+                    &[("error", &error)],
+                );
+                show_toast(&ui, &message);
+            }
+        }
+    });
+}
+
+fn apply_local_delivery_update(ui: &LiveUi, deliveries: Vec<Delivery>) {
+    *ui.deliveries.borrow_mut() = deliveries;
+    update_sidebar_counts(&ui.sidebar, &ui.deliveries.borrow());
+    (ui.rebuild)();
 }
 
 #[derive(Clone)]
@@ -1377,7 +1561,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
             tr("Aktiv"),
             deliveries
                 .iter()
-                .filter(|item| item.status.is_active())
+                .filter(|item| item.effective_status().is_active())
                 .count(),
         ),
         (
@@ -1387,7 +1571,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
                 .iter()
                 .filter(|item| {
                     matches!(
-                        item.status,
+                        item.effective_status(),
                         DeliveryStatus::InTransit | DeliveryStatus::InformationReceived
                     )
                 })
@@ -1398,7 +1582,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
             tr("In Zustellung"),
             deliveries
                 .iter()
-                .filter(|item| item.status == DeliveryStatus::OutForDelivery)
+                .filter(|item| item.effective_status() == DeliveryStatus::OutForDelivery)
                 .count(),
         ),
         (
@@ -1406,7 +1590,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
             tr("Abholbereit"),
             deliveries
                 .iter()
-                .filter(|item| item.status == DeliveryStatus::ReadyForPickup)
+                .filter(|item| item.effective_status() == DeliveryStatus::ReadyForPickup)
                 .count(),
         ),
         (
@@ -1414,7 +1598,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
             tr("Zugestellt"),
             deliveries
                 .iter()
-                .filter(|item| item.status == DeliveryStatus::Delivered)
+                .filter(|item| item.effective_status() == DeliveryStatus::Delivered)
                 .count(),
         ),
         (
@@ -1424,7 +1608,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
                 .iter()
                 .filter(|item| {
                     matches!(
-                        item.status,
+                        item.effective_status(),
                         DeliveryStatus::Delivered | DeliveryStatus::Frozen
                     )
                 })
@@ -1490,46 +1674,7 @@ fn build_sidebar(deliveries: &[Delivery]) -> Sidebar {
 }
 
 fn update_sidebar(sidebar: &Sidebar, deliveries: &[Delivery], connected: bool) {
-    let counts = [
-        deliveries
-            .iter()
-            .filter(|item| item.status.is_active())
-            .count(),
-        deliveries
-            .iter()
-            .filter(|item| {
-                matches!(
-                    item.status,
-                    DeliveryStatus::InTransit | DeliveryStatus::InformationReceived
-                )
-            })
-            .count(),
-        deliveries
-            .iter()
-            .filter(|item| item.status == DeliveryStatus::OutForDelivery)
-            .count(),
-        deliveries
-            .iter()
-            .filter(|item| item.status == DeliveryStatus::ReadyForPickup)
-            .count(),
-        deliveries
-            .iter()
-            .filter(|item| item.status == DeliveryStatus::Delivered)
-            .count(),
-        deliveries
-            .iter()
-            .filter(|item| {
-                matches!(
-                    item.status,
-                    DeliveryStatus::Delivered | DeliveryStatus::Frozen
-                )
-            })
-            .count(),
-    ];
-
-    for (label, count) in sidebar.count_labels.iter().zip(counts) {
-        label.set_label(&count.to_string());
-    }
+    update_sidebar_counts(sidebar, deliveries);
 
     if connected {
         sidebar.sync_title.set_label(&tr("Mit Parcel verbunden"));
@@ -1544,7 +1689,51 @@ fn update_sidebar(sidebar: &Sidebar, deliveries: &[Delivery], connected: bool) {
     }
 }
 
+fn update_sidebar_counts(sidebar: &Sidebar, deliveries: &[Delivery]) {
+    let counts = [
+        deliveries
+            .iter()
+            .filter(|item| item.effective_status().is_active())
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| {
+                matches!(
+                    item.effective_status(),
+                    DeliveryStatus::InTransit | DeliveryStatus::InformationReceived
+                )
+            })
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| item.effective_status() == DeliveryStatus::OutForDelivery)
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| item.effective_status() == DeliveryStatus::ReadyForPickup)
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| item.effective_status() == DeliveryStatus::Delivered)
+            .count(),
+        deliveries
+            .iter()
+            .filter(|item| {
+                matches!(
+                    item.effective_status(),
+                    DeliveryStatus::Delivered | DeliveryStatus::Frozen
+                )
+            })
+            .count(),
+    ];
+
+    for (label, count) in sidebar.count_labels.iter().zip(counts) {
+        label.set_label(&count.to_string());
+    }
+}
+
 fn delivery_row(delivery: &Delivery) -> gtk::ListBoxRow {
+    let effective_status = delivery.effective_status();
     let row = gtk::ListBoxRow::new();
     row.add_css_class("delivery-row");
 
@@ -1584,9 +1773,9 @@ fn delivery_row(delivery: &Delivery) -> gtk::ListBoxRow {
     card.append(&top);
 
     let status_row = gtk::Box::new(Orientation::Horizontal, 7);
-    let status_icon = gtk::Image::from_icon_name(delivery.status.icon_name());
+    let status_icon = gtk::Image::from_icon_name(effective_status.icon_name());
     status_icon.set_pixel_size(14);
-    let status = gtk::Label::new(Some(&delivery.status.label()));
+    let status = gtk::Label::new(Some(&delivery_status_label(delivery)));
     status.set_xalign(0.0);
     status.set_hexpand(true);
     status.add_css_class("caption");
@@ -1606,7 +1795,19 @@ fn delivery_row(delivery: &Delivery) -> gtk::ListBoxRow {
     row
 }
 
-fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::Stack, DetailView) {
+fn delivery_status_label(delivery: &Delivery) -> String {
+    if delivery.is_locally_delivered() {
+        tr("Lokal als zugestellt markiert")
+    } else {
+        delivery.effective_status().label()
+    }
+}
+
+fn build_detail_view(
+    toast_overlay: &adw::ToastOverlay,
+    local_delivery_action: &gio::SimpleAction,
+    using_real_data: Rc<Cell<bool>>,
+) -> (gtk::Stack, DetailView) {
     let detail = gtk::Box::new(Orientation::Vertical, 0);
     detail.add_css_class("detail-surface");
 
@@ -1642,7 +1843,7 @@ fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::Stack, DetailVi
 
     let menu_button = gtk::MenuButton::builder()
         .icon_name("view-more-symbolic")
-        .tooltip_text(tr("Weitere Optionen"))
+        .tooltip_text(tr("Weitere Sendungsoptionen"))
         .valign(Align::Start)
         .build();
     let menu = gio::Menu::new();
@@ -1772,6 +1973,9 @@ fn build_detail_view(toast_overlay: &adw::ToastOverlay) -> (gtk::Stack, DetailVi
             expected_detail,
             progress,
             timeline,
+            detail_menu: menu,
+            local_delivery_action: local_delivery_action.downgrade(),
+            using_real_data,
         },
     )
 }
