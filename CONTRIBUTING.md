@@ -25,7 +25,9 @@ cargo build --locked
 dbus-run-session -- xvfb-run -a python3 scripts/smoke-test.py target/debug/ankunft
 ```
 
-These tests use `--demo`, with synthetic data and no account access. HTTP tests
+These tests use `--demo`, synthetic data, an X11 virtual display and the Cairo
+software renderer, with no account access. GPU/Wayland acceptance needs a real
+desktop. HTTP tests
 use a loopback mock server, dummy credentials and isolated temporary storage.
 Do not make live API requests in CI.
 
