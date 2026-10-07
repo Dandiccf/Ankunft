@@ -49,10 +49,10 @@ for locale in ("en", "de", "fr", "es", "it", "pt_BR", "ja"):
                 os.killpg(application.pid, signal.SIGTERM)
             try:
                 stdout, stderr = application.communicate(timeout=10)
-        if failure:
-            raise RuntimeError(f"Desktop startup failed for {locale}: {failure}\n{stderr}") from failure
             except subprocess.TimeoutExpired:
                 os.killpg(application.pid, signal.SIGKILL)
                 stdout, stderr = application.communicate(timeout=10)
+        if failure:
+            raise RuntimeError(f"Desktop startup failed for {locale}: {failure}\n{stderr}") from failure
         assert not any(marker in stderr for marker in ("CRITICAL", "ERROR", "Segmentation fault")), stderr
         print(f"{locale}: desktop startup passed")
