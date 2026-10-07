@@ -223,4 +223,23 @@ mod tests {
         let key = parse_api_key_owned("  secret-value  ".to_owned()).expect("valid key");
         assert_eq!(key.expose_secret(), "secret-value");
     }
+    #[test]
+    #[ignore = "explicit live-account check; never run in CI"]
+    fn live_saved_connection_read_only() {
+        assert_eq!(std::env::var("ANKUNFT_LIVE_SMOKE").as_deref(), Ok("1"));
+        let context = gtk::glib::MainContext::new();
+        let key = context
+            .with_thread_default(|| context.block_on(load_api_key()))
+            .expect("could not create diagnostic context")
+            .unwrap_or_else(|_| {
+                panic!("Saved connection is unavailable; check the desktop keyring")
+            })
+            .unwrap_or_else(|| panic!("No Parcel API key is configured in Ankunft"));
+        let client = crate::api::ParcelClient::new(key)
+            .unwrap_or_else(|_| panic!("Parcel client could not initialize"));
+        assert!(
+            client.deliveries(crate::api::FilterMode::Recent).is_ok(),
+            "Parcel read failed; check the account connection in Ankunft"
+        );
+    }
 }

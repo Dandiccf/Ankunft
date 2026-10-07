@@ -33,3 +33,29 @@ been completed with a consenting tester's own account.
 Use synthetic data for public evidence. Never commit an API key, account cache or
 personal delivery screenshots. Record the distro, desktop, architecture, package
 version and outcome when a manual check is completed.
+
+An explicit optional check can read recent deliveries using Ankunft's existing
+keyring entry without printing credentials or delivery data:
+
+```bash
+ANKUNFT_LIVE_SMOKE=1 cargo test --locked secrets::tests::live_saved_connection_read_only -- --ignored --exact
+```
+
+This consumes one read attempt when a saved key is available. It never adds or
+modifies a Parcel delivery and must not be enabled in CI.
+
+## Verified locally on 2026-10-07
+
+- 68 automated tests, strict Clippy, formatting, translation/placeholder checks,
+  desktop metadata, AppStream metadata and shell script checks passed.
+- Ubuntu 24.04 native build/startup passed with GTK 4.14.5 and Libadwaita 1.5.0.
+- Native install/uninstall passed in a fresh unprivileged Ubuntu account: six
+  catalogs, desktop integration and retention of synthetic local state.
+- The x86_64 Flatpak built offline, installed, and mapped its window in each of
+  the six interface languages; an unsupported locale selected English.
+- The explicitly enabled read-only live check successfully loaded Ankunft's
+  saved key and fetched recent deliveries. No credentials or delivery details
+  were printed, and no Parcel deliveries were added or modified.
+
+These results do not replace the physical-desktop, account-change, background
+permission and notification acceptance checks above.
