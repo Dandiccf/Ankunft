@@ -30,4 +30,4 @@ pkg-config --modversion gtk4 libadwaita-1 libsecret-1
 cargo test --locked
 cargo clippy --locked --all-targets -- -D warnings
 cargo build --locked
-dbus-run-session -- xvfb-run -a python3 scripts/smoke-test.py target/debug/ankunft
+dbus-run-session -- bash scripts/run-headless.sh python3 scripts/smoke-test.py "${CARGO_TARGET_DIR:-target}/debug/ankunft"

@@ -33,7 +33,7 @@ jobs:
       - name: Verify installed bundle
         run: |
           flatpak install --user --noninteractive "dist/Ankunft-${{ matrix.arch }}.flatpak"
-          dbus-run-session -- xvfb-run -a python3 scripts/smoke-test.py flatpak run --socket=x11 --nosocket=wayland io.github.dandiccf.Ankunft
+          dbus-run-session -- bash scripts/run-headless.sh python3 scripts/smoke-test.py flatpak run --socket=x11 --nosocket=wayland io.github.dandiccf.Ankunft
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: Ankunft-${{ matrix.arch }}
