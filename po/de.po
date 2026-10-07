@@ -66,8 +66,8 @@ msgid "Parcel hat für diese Sendung noch keine Details bereitgestellt."
 msgstr "Parcel hat für diese Sendung noch keine Details bereitgestellt."
 
 #: src/ui/mod.rs
-msgid "Prototypmodus · Sichere Beispieldaten"
-msgstr "Prototypmodus · Sichere Beispieldaten"
+msgid "Demomodus · Sichere Beispieldaten"
+msgstr "Demomodus · Sichere Beispieldaten"
 
 #: src/ui/mod.rs
 msgid "API verbinden"
@@ -850,3 +850,18 @@ msgstr "Die lokale Markierung konnte nicht gespeichert werden: {error}"
 #: src/storage.rs
 msgid "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
 msgstr "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
+
+msgid "Im Hintergrund weiterlaufen"
+msgstr "Im Hintergrund weiterlaufen"
+
+msgid "Sendungen alle 15 Minuten prüfen, auch bei geschlossenem Fenster."
+msgstr "Sendungen alle 15 Minuten prüfen, auch bei geschlossenem Fenster."
+
+msgid "Beenden"
+msgstr "Beenden"
+
+msgid "Hintergrundbetrieb wurde nicht erlaubt. Das Fenster bleibt geöffnet."
+msgstr "Hintergrundbetrieb wurde nicht erlaubt. Das Fenster bleibt geöffnet."
+
+msgid "Sendungen prüfen und über wichtige Änderungen informieren."
+msgstr "Sendungen prüfen und über wichtige Änderungen informieren."

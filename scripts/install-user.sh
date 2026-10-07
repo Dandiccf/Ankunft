@@ -6,8 +6,9 @@ umask 022
 
 readonly APP_ID="io.github.dandiccf.Ankunft"
 readonly GETTEXT_DOMAIN="ankunft"
-readonly SCRIPT_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-readonly PROJECT_DIRECTORY="$(cd -- "$SCRIPT_DIRECTORY/.." && pwd -P)"
+SCRIPT_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+PROJECT_DIRECTORY="$(cd -- "$SCRIPT_DIRECTORY/.." && pwd -P)"
+readonly SCRIPT_DIRECTORY PROJECT_DIRECTORY
 
 die() {
     printf 'Ankunft konnte nicht installiert werden: %s\n' "$*" >&2
@@ -45,6 +46,7 @@ readonly binary_source="$PROJECT_DIRECTORY/target/release/ankunft"
 readonly desktop_source="$PROJECT_DIRECTORY/data/$APP_ID.desktop"
 readonly service_source="$PROJECT_DIRECTORY/data/$APP_ID.service.in"
 readonly icon_source="$PROJECT_DIRECTORY/icons/$APP_ID.svg"
+readonly metainfo_source="$PROJECT_DIRECTORY/data/$APP_ID.metainfo.xml"
 
 readonly binary_directory="$user_home/.local/bin"
 readonly applications_directory="$user_data_directory/applications"
@@ -57,6 +59,7 @@ readonly binary_destination="$binary_directory/ankunft"
 readonly desktop_destination="$applications_directory/$APP_ID.desktop"
 readonly service_destination="$dbus_service_directory/$APP_ID.service"
 readonly icon_destination="$icon_directory/$APP_ID.svg"
+readonly metainfo_destination="$user_data_directory/metainfo/$APP_ID.metainfo.xml"
 
 require_regular_file() {
     local source_path="$1"
@@ -71,6 +74,7 @@ require_regular_file "$binary_source" "Das Release-Binary"
 require_regular_file "$desktop_source" "Die Desktop-Datei"
 require_regular_file "$service_source" "Die D-Bus-Service-Datei"
 require_regular_file "$icon_source" "Das Anwendungssymbol"
+require_regular_file "$metainfo_source" "Die AppStream-Metadaten"
 
 if command -v desktop-file-validate >/dev/null 2>&1; then
     desktop-file-validate "$desktop_source" \
@@ -120,7 +124,7 @@ quote_dbus_exec_argument() {
 
     [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] \
         || die "Der Installationspfad enthält einen für D-Bus ungültigen Zeilenumbruch."
-    [[ "$value" != *"'"* && "$value" != *'\'* ]] \
+    [[ "$value" != *"'"* && "$value" != *\\* ]] \
         || die "Der Installationspfad enthält ein von D-Bus nicht sicher darstellbares Apostroph oder einen Rückstrich."
 
     printf "'%s'" "$value"
@@ -149,55 +153,35 @@ render_dbus_service() {
 # unsupported home-directory name cannot leave a partial installation behind.
 quote_dbus_exec_argument "$binary_destination" >/dev/null
 
-translation_roots=()
-for candidate in \
-    "$PROJECT_DIRECTORY/po" \
-    "$PROJECT_DIRECTORY/locale" \
-    "$PROJECT_DIRECTORY/build/po" \
-    "$PROJECT_DIRECTORY/build/locale" \
-    "$PROJECT_DIRECTORY/target/locale"
-do
-    if [[ -d "$candidate" ]]; then
-        translation_roots+=("$candidate")
-    fi
-done
-
-shopt -s nullglob
-for candidate in "$PROJECT_DIRECTORY"/target/release/build/ankunft-*/out/locale; do
-    if [[ -d "$candidate" ]]; then
-        translation_roots+=("$candidate")
-        break
-    fi
-done
-shopt -u nullglob
-
+# Compile the current source catalogs. Selecting the first Cargo OUT_DIR can
+# accidentally install translations from an older build after feature changes.
+command -v msgfmt >/dev/null || die "GNU gettext (msgfmt) fehlt."
+require_regular_file "$PROJECT_DIRECTORY/po/LINGUAS" "Die Sprachliste"
 translation_sources=()
 translation_locales=()
 declare -A seen_locales=()
-
-if (( ${#translation_roots[@]} > 0 )); then
-    while IFS= read -r -d '' message_catalog; do
-        catalog_parent="$(basename -- "$(dirname -- "$message_catalog")")"
-        if [[ "$catalog_parent" == "LC_MESSAGES" ]]; then
-            locale_name="$(basename -- "$(dirname -- "$(dirname -- "$message_catalog")")")"
-        else
-            locale_name="$(basename -- "$message_catalog" .mo)"
-        fi
-
+while IFS= read -r locale_line || [[ -n "$locale_line" ]]; do
+    locale_line="${locale_line%%#*}"
+    IFS=$' \t' read -r -a locales_for_line <<< "$locale_line"
+    for locale_name in "${locales_for_line[@]}"; do
         [[ "$locale_name" =~ ^[[:alpha:]]{2,3}([_.@-][[:alnum:]]+)*$ ]] \
-            || die "Die Sprache konnte aus der Übersetzung nicht sicher bestimmt werden: $message_catalog"
-        [[ -z "${seen_locales[$locale_name]+present}" ]] \
-            || die "Mehrere .mo-Dateien wurden für '$locale_name' gefunden."
-
+            || die "Ungültige Sprache: $locale_name"
+        [[ -z "${seen_locales[$locale_name]+present}" ]] || die "Doppelte Sprache: $locale_name"
         seen_locales[$locale_name]=1
-        translation_sources+=("$message_catalog")
+        catalog_source="$PROJECT_DIRECTORY/po/$locale_name.po"
+        require_regular_file "$catalog_source" "Die Übersetzung"
+        compiled_catalog="$(mktemp --suffix=.mo)"
+        temporary_paths+=("$compiled_catalog")
+        msgfmt --check "$catalog_source" -o "$compiled_catalog" || die "Ungültige Übersetzung: $locale_name"
+        translation_sources+=("$compiled_catalog")
         translation_locales+=("$locale_name")
-    done < <(find "${translation_roots[@]}" -type f -name '*.mo' -print0)
-fi
+    done
+done < "$PROJECT_DIRECTORY/po/LINGUAS"
 
 install_atomically "$binary_source" "$binary_destination" 0755
 install_atomically "$desktop_source" "$desktop_destination" 0644
 install_atomically "$icon_source" "$icon_destination" 0644
+install_atomically "$metainfo_source" "$metainfo_destination" 0644
 
 mkdir -p -- "$dbus_service_directory"
 rendered_service="$(mktemp --tmpdir="$dbus_service_directory" ".${APP_ID}.service.render.XXXXXX")"

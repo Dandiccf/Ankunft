@@ -1,0 +1,31 @@
+{
+  "app-id": "io.github.dandiccf.Ankunft",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "50",
+  "sdk": "org.gnome.Sdk",
+  "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
+  "command": "ankunft",
+  "finish-args": [
+    "--share=network",
+    "--share=ipc",
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--device=dri",
+    "--talk-name=org.freedesktop.secrets"
+  ],
+  "build-options": {
+    "append-path": "/usr/lib/sdk/rust-stable/bin",
+    "env": {"CARGO_HOME": "/run/build/ankunft/cargo", "ANKUNFT_LOCALEDIR": "/app/share/locale"}
+  },
+  "modules": [
+    {
+      "name": "ankunft",
+      "buildsystem": "simple",
+      "build-commands": [
+        "cargo build --release --frozen --offline",
+        "bash scripts/install-prefix.sh /app"
+      ],
+      "sources": [{"type": "dir", "path": "../dist/flatpak-source"}]
+    }
+  ]
+}

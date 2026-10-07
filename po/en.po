@@ -66,8 +66,8 @@ msgid "Parcel hat für diese Sendung noch keine Details bereitgestellt."
 msgstr "Parcel has not provided any details for this delivery yet."
 
 #: src/ui/mod.rs
-msgid "Prototypmodus · Sichere Beispieldaten"
-msgstr "Prototype mode · Safe sample data"
+msgid "Demomodus · Sichere Beispieldaten"
+msgstr "Demo mode · Safe sample data"
 
 #: src/ui/mod.rs
 msgid "API verbinden"
@@ -850,3 +850,18 @@ msgstr "Could not save the local mark: {error}"
 #: src/storage.rs
 msgid "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
 msgstr "The local shipment store was updated, but its durable persistence could not be confirmed: {0}"
+
+msgid "Im Hintergrund weiterlaufen"
+msgstr "Keep running in the background"
+
+msgid "Sendungen alle 15 Minuten prüfen, auch bei geschlossenem Fenster."
+msgstr "Check deliveries every 15 minutes, even when the window is closed."
+
+msgid "Beenden"
+msgstr "Quit"
+
+msgid "Hintergrundbetrieb wurde nicht erlaubt. Das Fenster bleibt geöffnet."
+msgstr "Background operation was not allowed. The window stays open."
+
+msgid "Sendungen prüfen und über wichtige Änderungen informieren."
+msgstr "Check deliveries and notify about important changes."

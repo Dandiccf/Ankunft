@@ -1,3 +1,5 @@
+use std::{cell::Cell, rc::Rc};
+
 use adw::prelude::*;
 use gtk::{gdk, gio};
 
@@ -7,17 +9,46 @@ pub const APP_ID: &str = "io.github.dandiccf.Ankunft";
 
 pub fn run() {
     let application = adw::Application::builder().application_id(APP_ID).build();
+    application.add_main_option(
+        "demo",
+        gtk::glib::Char::from(b'd'),
+        gtk::glib::OptionFlags::NONE,
+        gtk::glib::OptionArg::None,
+        "Show sample deliveries without accessing account data",
+        None,
+    );
+    application.add_main_option(
+        "version",
+        gtk::glib::Char::from(b'v'),
+        gtk::glib::OptionFlags::NONE,
+        gtk::glib::OptionArg::None,
+        "Print the application version",
+        None,
+    );
+    let demo = Rc::new(Cell::new(false));
+    let demo_option = demo.clone();
+    application.connect_handle_local_options(move |app, options| {
+        if options.contains("version") {
+            println!("Ankunft {}", env!("CARGO_PKG_VERSION"));
+            return std::ops::ControlFlow::Break(gtk::glib::ExitCode::SUCCESS);
+        }
+        if options.contains("demo") {
+            demo_option.set(true);
+            app.set_flags(gio::ApplicationFlags::NON_UNIQUE);
+        }
+        std::ops::ControlFlow::Continue(())
+    });
 
     application.connect_startup(|app| {
         gtk::Window::set_default_icon_name(APP_ID);
         load_css();
         install_actions(app);
     });
-    application.connect_activate(|app| {
+    application.connect_activate(move |app| {
         if let Some(window) = app.windows().first() {
             window.present();
         } else {
-            ui::build_window(app);
+            ui::build_window(app, demo.get());
         }
     });
     application.run();

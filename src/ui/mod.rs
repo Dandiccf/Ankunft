@@ -203,8 +203,12 @@ impl DetailView {
     }
 }
 
-pub fn build_window(app: &adw::Application) {
-    let (initial_deliveries, cache, cache_warning, cached_at) = load_initial_deliveries();
+pub fn build_window(app: &adw::Application, demo: bool) {
+    let (initial_deliveries, cache, cache_warning, cached_at) = if demo {
+        (demo_deliveries(), None, None, None)
+    } else {
+        load_initial_deliveries()
+    };
     let deliveries = Rc::new(RefCell::new(initial_deliveries));
     let current_filter = Rc::new(RefCell::new(DeliveryFilter::Active));
     let visible_indices = Rc::new(RefCell::new(Vec::<usize>::new()));
@@ -265,6 +269,15 @@ pub fn build_window(app: &adw::Application) {
     disconnect_button.add_css_class("destructive-action");
     account_actions.append(&change_connection_button);
     account_actions.append(&disconnect_button);
+    let background_button = gtk::CheckButton::with_label(&tr("Im Hintergrund weiterlaufen"));
+    background_button.set_tooltip_text(Some(&tr(
+        "Sendungen alle 15 Minuten prüfen, auch bei geschlossenem Fenster.",
+    )));
+    account_actions.append(&background_button);
+    let quit_button = gtk::Button::with_label(&tr("Beenden"));
+    quit_button.set_action_name(Some("app.quit"));
+    quit_button.add_css_class("flat");
+    account_actions.append(&quit_button);
     account_popover.set_child(Some(&account_actions));
     account_button.set_popover(Some(&account_popover));
     header.pack_end(&account_button);
@@ -296,7 +309,7 @@ pub fn build_window(app: &adw::Application) {
     let list_column = gtk::Box::new(Orientation::Vertical, 0);
     list_column.add_css_class("list-column");
     let connection_banner = adw::Banner::builder()
-        .title(tr("Prototypmodus · Sichere Beispieldaten"))
+        .title(tr("Demomodus · Sichere Beispieldaten"))
         .button_label(tr("API verbinden"))
         .revealed(true)
         .build();
@@ -527,6 +540,13 @@ pub fn build_window(app: &adw::Application) {
         sidebar.list.select_row(Some(&row));
     }
 
+    if demo {
+        window.connect_map(|_| {
+            // A deterministic readiness signal for package startup checks.
+            println!("Ankunft demo ready: {}", crate::i18n::initialize());
+            let _ = std::io::Write::flush(&mut std::io::stdout());
+        });
+    }
     window.present();
     if let Some(warning) = cache_warning {
         let message = interpolate(
@@ -535,7 +555,86 @@ pub fn build_window(app: &adw::Application) {
         );
         show_toast(&live_ui, &message);
     }
-    restore_connection(&window, &live_ui, false, true);
+    if demo {
+        refresh_button.set_sensitive(false);
+        add_button.set_sensitive(false);
+        account_button.set_sensitive(false);
+        connection_banner.set_button_label(None);
+    } else {
+        install_refresh_and_background(&window, &live_ui, &background_button);
+        restore_connection(&window, &live_ui, false, true);
+    }
+}
+
+fn install_refresh_and_background(
+    window: &adw::ApplicationWindow,
+    ui: &LiveUi,
+    background_button: &gtk::CheckButton,
+) {
+    // Weak references keep the timer from retaining a closed window.
+    let weak_window = window.downgrade();
+    let timer_ui = ui.clone();
+    let timer =
+        gtk::glib::timeout_add_seconds_local(AUTOMATIC_REFRESH_INTERVAL_SECS as u32, move || {
+            let Some(window) = weak_window.upgrade() else {
+                return gtk::glib::ControlFlow::Break;
+            };
+            if automatic_refresh_due(
+                timer_ui.using_real_data.get(),
+                timer_ui.loading.get(),
+                timer_ui.dialog_open.get(),
+            ) {
+                restore_connection(&window, &timer_ui, false, false);
+            }
+            gtk::glib::ControlFlow::Continue
+        });
+    let timer = RefCell::new(Some(timer));
+    window.connect_destroy(move |_| {
+        if let Some(timer) = timer.borrow_mut().take() {
+            timer.remove();
+        }
+    });
+
+    // Opt-in is deliberately session-local. Closing normally exits the app;
+    // a background window can be reopened from the launcher or a notification.
+    let hold = Rc::new(RefCell::new(None::<gio::ApplicationHoldGuard>));
+    let close_hold = hold.clone();
+    window.connect_close_request(move |window| {
+        if close_hold.borrow().is_some() {
+            window.set_visible(false);
+            gtk::glib::Propagation::Stop
+        } else {
+            gtk::glib::Propagation::Proceed
+        }
+    });
+    let ui = ui.clone();
+    background_button.connect_toggled(move |button| {
+        if !button.is_active() {
+            hold.borrow_mut().take();
+            return;
+        }
+        let button = button.clone();
+        let ui = ui.clone();
+        let hold = hold.clone();
+        button.set_sensitive(false);
+        gtk::glib::spawn_future_local(async move {
+            let allowed = crate::background::request_permission().await;
+            if allowed && button.is_active() {
+                *hold.borrow_mut() = Some(ui.application.hold());
+            } else {
+                button.set_active(false);
+                show_toast(
+                    &ui,
+                    &tr("Hintergrundbetrieb wurde nicht erlaubt. Das Fenster bleibt geöffnet."),
+                );
+            }
+            button.set_sensitive(true);
+        });
+    });
+}
+
+fn automatic_refresh_due(using_real_data: bool, loading: bool, dialog_open: bool) -> bool {
+    using_real_data && !loading && !dialog_open
 }
 
 #[derive(Clone)]
@@ -782,10 +881,14 @@ fn show_add_delivery_dialog_with_choices(
     let carrier = adw::ComboRow::builder()
         .title(tr("Paketdienst"))
         .enable_search(true)
-        .search_match_mode(gtk::StringFilterMatchMode::Substring)
         .expression(&carrier_expression)
         .model(&carrier_model)
         .build();
+    // Libadwaita 1.5 supports prefix search; newer desktops also expose
+    // substring matching. Query the property rather than raising the baseline.
+    if carrier.find_property("search-match-mode").is_some() {
+        carrier.set_property("search-match-mode", gtk::StringFilterMatchMode::Substring);
+    }
     carrier.set_selected(gtk::INVALID_LIST_POSITION);
 
     let primary_group = adw::PreferencesGroup::new();
@@ -1397,7 +1500,7 @@ fn show_disconnected(ui: &LiveUi) {
             .set_title(&tr("Offline · Zuletzt gespeicherte Sendungen"));
     } else {
         ui.banner
-            .set_title(&tr("Prototypmodus · Sichere Beispieldaten"));
+            .set_title(&tr("Demomodus · Sichere Beispieldaten"));
     }
     ui.banner.set_button_label(Some(&tr("API verbinden")));
     ui.banner_action.set(BannerAction::Connect);
@@ -2057,6 +2160,14 @@ fn timeline_row(
 mod tests {
     use super::*;
     use std::collections::BTreeMap;
+
+    #[test]
+    fn automatic_refresh_requires_connected_idle_ui() {
+        assert!(automatic_refresh_due(true, false, false));
+        assert!(!automatic_refresh_due(false, false, false));
+        assert!(!automatic_refresh_due(true, true, false));
+        assert!(!automatic_refresh_due(true, false, true));
+    }
 
     #[test]
     fn sidebar_indices_keep_delivered_and_recent_as_separate_rows() {

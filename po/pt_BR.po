@@ -66,8 +66,8 @@ msgid "Parcel hat für diese Sendung noch keine Details bereitgestellt."
 msgstr "O Parcel ainda não forneceu detalhes para esta entrega."
 
 #: src/ui/mod.rs
-msgid "Prototypmodus · Sichere Beispieldaten"
-msgstr "Modo protótipo · Dados de exemplo seguros"
+msgid "Demomodus · Sichere Beispieldaten"
+msgstr "Modo de demonstração · Dados de exemplo seguros"
 
 #: src/ui/mod.rs
 msgid "API verbinden"
@@ -850,3 +850,18 @@ msgstr "Não foi possível salvar a marcação local: {error}"
 #: src/storage.rs
 msgid "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
 msgstr "O armazenamento local de entregas foi atualizado, mas não foi possível confirmar sua gravação permanente: {0}"
+
+msgid "Im Hintergrund weiterlaufen"
+msgstr "Continuar em segundo plano"
+
+msgid "Sendungen alle 15 Minuten prüfen, auch bei geschlossenem Fenster."
+msgstr "Verificar entregas a cada 15 minutos, mesmo com a janela fechada."
+
+msgid "Beenden"
+msgstr "Sair"
+
+msgid "Hintergrundbetrieb wurde nicht erlaubt. Das Fenster bleibt geöffnet."
+msgstr "A execução em segundo plano não foi permitida. A janela permanece aberta."
+
+msgid "Sendungen prüfen und über wichtige Änderungen informieren."
+msgstr "Verificar entregas e notificar alterações importantes."

@@ -64,3 +64,17 @@ garantierte Zeitzone fehlt. Sie werden so dargestellt, wie Parcel sie liefert.
 1. Verwaltung und gezieltes Entfernen lokal archivierter Zustellungen
 2. optionaler Hintergrundbetrieb und regelmäßiger Abgleich
 3. StatusNotifierItem, Autostart und reproduzierbare Paketierung
+
+## Release 0.2.0
+
+Der aktive Prozess prüft verbundene Konten alle 15 Minuten; laufende Requests und
+Kontodialoge verhindern überlappende automatische Abrufe. Ein optionaler,
+sitzungslokaler Hintergrundmodus hält das versteckte Fenster und den Prozess
+aktiv. In Flatpak wird vorher die Erlaubnis des Background-Portals eingeholt.
+Beenden beendet auch die Überwachung. Login-Autostart und Tray bleiben optional
+geplante Funktionen.
+
+`--demo` erstellt eine getrennte Instanz ohne Zugriff auf Schlüsselbund, Cache,
+API-Zähler oder Netzwerk. Die Screenshot- und Startup-Tests verwenden diesen
+Modus. Flatpak vendort die Abhängigkeiten aus Cargo.lock und baut ohne Netzwerk
+im GNOME-SDK; die Release-Pipeline prüft beide Architekturen vor Veröffentlichung.

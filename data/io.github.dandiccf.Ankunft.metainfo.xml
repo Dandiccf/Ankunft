@@ -25,5 +25,19 @@
     <p xml:lang="pt-BR">Ankunft é um cliente GNOME moderno para Parcel Premium, com notificações nativas e um histórico claro de entregas.</p>
   </description>
   <launchable type="desktop-id">io.github.dandiccf.Ankunft.desktop</launchable>
+  <url type="homepage">https://github.com/Dandiccf/Ankunft</url>
+  <url type="bugtracker">https://github.com/Dandiccf/Ankunft/issues</url>
+  <url type="help">https://github.com/Dandiccf/Ankunft#readme</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Delivery overview with sample data</caption>
+      <image>https://raw.githubusercontent.com/Dandiccf/Ankunft/main/docs/screenshots/overview.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.2.0" date="2026-10-07" type="development">
+      <description><p>Portable Flatpak packaging, wider native compatibility, automatic refresh, optional background operation and improved release documentation.</p></description>
+    </release>
+  </releases>
   <content_rating type="oars-1.1" />
 </component>

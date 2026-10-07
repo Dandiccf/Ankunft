@@ -8,3 +8,4 @@ src/rate_limit.rs
 src/secrets.rs
 src/storage.rs
 src/ui/mod.rs
+src/background.rs

@@ -66,8 +66,8 @@ msgid "Parcel hat für diese Sendung noch keine Details bereitgestellt."
 msgstr "Parcel non ha ancora fornito dettagli per questa spedizione."
 
 #: src/ui/mod.rs
-msgid "Prototypmodus · Sichere Beispieldaten"
-msgstr "Modalità prototipo · Dati di esempio sicuri"
+msgid "Demomodus · Sichere Beispieldaten"
+msgstr "Modalità demo · Dati di esempio sicuri"
 
 #: src/ui/mod.rs
 msgid "API verbinden"
@@ -850,3 +850,18 @@ msgstr "Impossibile salvare la marcatura locale: {error}"
 #: src/storage.rs
 msgid "Der lokale Sendungsspeicher wurde aktualisiert, aber die dauerhafte Speicherung konnte nicht bestätigt werden: {0}"
 msgstr "L'archivio locale delle spedizioni è stato aggiornato, ma non è stato possibile confermarne il salvataggio permanente: {0}"
+
+msgid "Im Hintergrund weiterlaufen"
+msgstr "Continua in background"
+
+msgid "Sendungen alle 15 Minuten prüfen, auch bei geschlossenem Fenster."
+msgstr "Controlla le spedizioni ogni 15 minuti, anche quando la finestra è chiusa."
+
+msgid "Beenden"
+msgstr "Esci"
+
+msgid "Hintergrundbetrieb wurde nicht erlaubt. Das Fenster bleibt geöffnet."
+msgstr "Il funzionamento in background non è stato autorizzato. La finestra rimane aperta."
+
+msgid "Sendungen prüfen und über wichtige Änderungen informieren."
+msgstr "Controlla le spedizioni e segnala le modifiche importanti."

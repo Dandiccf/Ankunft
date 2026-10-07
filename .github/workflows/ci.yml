@@ -1,0 +1,53 @@
+name: Linux checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install development dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libsecret-1-dev gettext desktop-file-utils appstream python3 shellcheck
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo test --locked
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: python3 scripts/check-translations.py
+      - run: desktop-file-validate data/io.github.dandiccf.Ankunft.desktop
+      - run: appstreamcli validate --no-net data/io.github.dandiccf.Ankunft.metainfo.xml
+      - run: shellcheck scripts/*.sh
+      - run: cargo build --locked
+      - run: bash scripts/test-user-install.sh
+  distros:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu
+            image: ubuntu:24.04
+          - distro: debian
+            image: debian:13
+          - distro: fedora
+            image: fedora:44
+          - distro: arch
+            image: archlinux:base-devel
+          - distro: opensuse
+            image: opensuse/tumbleweed:latest
+    name: ${{ matrix.distro }} build and desktop startup
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Test in the distro container
+        run: docker run --rm -v "$PWD:/workspace" -e CARGO_TARGET_DIR=/tmp/ankunft-target "${{ matrix.image }}" bash /workspace/scripts/ci-distro.sh "${{ matrix.distro }}"

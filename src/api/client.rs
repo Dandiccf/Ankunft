@@ -189,6 +189,14 @@ impl ParcelClient {
 
     fn with_api_root(api_key: SecretString, api_root: impl Into<String>) -> Result<Self, ApiError> {
         let rate_limiter = RateLimiter::shared_default().map_err(ApiError::RateLimitState)?;
+        Self::with_rate_limiter(api_key, api_root, rate_limiter)
+    }
+
+    fn with_rate_limiter(
+        api_key: SecretString,
+        api_root: impl Into<String>,
+        rate_limiter: Arc<RateLimiter>,
+    ) -> Result<Self, ApiError> {
         let _ = rate_limiter
             .status(RequestKind::Read)
             .map_err(ApiError::RateLimitState)?;
@@ -311,6 +319,134 @@ impl ParcelClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{
+        fs,
+        io::{Read, Write},
+        net::TcpListener,
+        thread,
+    };
+
+    struct TestDirectory(std::path::PathBuf);
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    /// Exercise real HTTP framing, authentication, caching, error handling and
+    /// add semantics against loopback, using only synthetic credentials/data.
+    fn mock_client(
+        responses: Vec<&'static str>,
+    ) -> (ParcelClient, thread::JoinHandle<Vec<String>>, TestDirectory) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind mock server");
+        listener
+            .set_nonblocking(true)
+            .expect("nonblocking mock server");
+        let root = format!("http://{}/external", listener.local_addr().unwrap());
+        let directory = TestDirectory(std::env::temp_dir().join(format!(
+            "ankunft-http-{}-{}",
+            std::process::id(),
+            listener.local_addr().unwrap().port()
+        )));
+        let limiter = Arc::new(RateLimiter::open_in(&directory.0).expect("isolated rate limiter"));
+        let client = ParcelClient::with_rate_limiter(
+            SecretString::from("synthetic-test-key"),
+            root,
+            limiter,
+        )
+        .expect("mock client");
+        let worker = thread::spawn(move || {
+            let mut requests = Vec::new();
+            for response in responses {
+                let deadline = std::time::Instant::now() + Duration::from_secs(5);
+                let mut stream = loop {
+                    match listener.accept() {
+                        Ok((stream, _)) => break stream,
+                        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                            assert!(
+                                std::time::Instant::now() < deadline,
+                                "mock request timed out"
+                            );
+                            thread::sleep(Duration::from_millis(5));
+                        }
+                        Err(error) => panic!("mock accept failed: {error}"),
+                    }
+                };
+                stream
+                    .set_read_timeout(Some(Duration::from_secs(5)))
+                    .unwrap();
+                let mut bytes = Vec::new();
+                let mut buffer = [0; 4096];
+                loop {
+                    let read = stream.read(&mut buffer).unwrap();
+                    assert_ne!(read, 0, "request ended early");
+                    bytes.extend_from_slice(&buffer[..read]);
+                    if let Some(end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
+                        let header = String::from_utf8_lossy(&bytes[..end]);
+                        let length = header
+                            .lines()
+                            .find_map(|line| {
+                                line.to_ascii_lowercase()
+                                    .strip_prefix("content-length: ")
+                                    .and_then(|value| value.parse::<usize>().ok())
+                            })
+                            .unwrap_or(0);
+                        if bytes.len() >= end + 4 + length {
+                            break;
+                        }
+                    }
+                }
+                requests.push(String::from_utf8(bytes).unwrap());
+                write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", response.len(), response).unwrap();
+            }
+            requests
+        });
+        (client, worker, directory)
+    }
+
+    #[test]
+    fn http_sync_and_add_use_headers_payload_and_cached_carriers() {
+        let (client, worker, _directory) = mock_client(vec![
+            r#"{"ups":{"name":"UPS"}}"#,
+            r#"{"success":true,"deliveries":[{"carrier_code":"ups","description":"Synthetic delivery","status_code":4,"tracking_number":"TEST123","events":[]}]}"#,
+            r#"{"success":true}"#,
+        ]);
+        let deliveries = client.deliveries(FilterMode::Recent).unwrap();
+        assert_eq!(deliveries.len(), 1);
+        assert_eq!(deliveries[0].carrier_name, "UPS");
+        assert_eq!(client.supported_carriers().unwrap().len(), 1);
+        client
+            .add_delivery(&NewDelivery::try_from(valid_draft()).unwrap())
+            .unwrap();
+        let requests = worker.join().unwrap();
+        assert!(requests[0].starts_with("GET /external/supported_carriers.json "));
+        assert!(!requests[0].contains("synthetic-test-key"));
+        assert!(requests[1].starts_with("GET /external/deliveries/?filter_mode=recent "));
+        assert!(requests[1].contains("api-key: synthetic-test-key\r\n"));
+        assert!(requests[2].starts_with("POST /external/add-delivery/ "));
+        let payload: serde_json::Value =
+            serde_json::from_str(requests[2].split("\r\n\r\n").nth(1).unwrap()).unwrap();
+        assert_eq!(payload["tracking_number"], "TRACK-123");
+        assert_eq!(payload["language"], "de");
+    }
+
+    #[test]
+    fn http_rejected_add_is_not_retried_and_malformed_sync_is_reported() {
+        let (client, worker, _directory) = mock_client(vec![
+            r#"{"success":false,"error_message":"Invalid test number"}"#,
+            r#"{"ups":{"name":"UPS"}}"#,
+            "not-json",
+        ]);
+        assert!(matches!(
+            client.add_delivery(&NewDelivery::try_from(valid_draft()).unwrap()),
+            Err(ApiError::Parcel(_))
+        ));
+        assert!(matches!(
+            client.deliveries(FilterMode::Active),
+            Err(ApiError::Network(_))
+        ));
+        assert_eq!(worker.join().unwrap().len(), 3);
+    }
 
     fn valid_draft() -> NewDeliveryDraft {
         NewDeliveryDraft {

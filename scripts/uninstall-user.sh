@@ -45,6 +45,7 @@ readonly icon_theme_directory="$user_data_directory/icons/hicolor"
 readonly icon_path="$icon_theme_directory/scalable/apps/$APP_ID.svg"
 readonly dbus_service_path="$user_data_directory/dbus-1/services/$APP_ID.service"
 readonly locale_directory="$user_data_directory/locale"
+readonly metainfo_path="$user_data_directory/metainfo/$APP_ID.metainfo.xml"
 
 removed_count=0
 had_errors=0
@@ -66,6 +67,7 @@ remove_exact_file() {
 }
 
 remove_exact_file "$desktop_path"
+remove_exact_file "$metainfo_path"
 remove_exact_file "$icon_path"
 remove_exact_file "$dbus_service_path"
 remove_exact_file "$binary_path"

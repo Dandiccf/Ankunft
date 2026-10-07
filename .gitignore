@@ -1,6 +1,7 @@
 /target/
+/dist/
+/.flatpak-builder/
 *.log
 .env
 .idea/
 .vscode/
-

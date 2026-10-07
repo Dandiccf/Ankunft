@@ -76,7 +76,9 @@ fn active_catalog() -> Option<&'static Catalog> {
 }
 
 fn load_catalog() -> Option<Catalog> {
-    for locale in requested_locales() {
+    // German remains the message source, but English is the international
+    // fallback for unsupported languages and C/POSIX environments.
+    for locale in requested_locales().into_iter().chain(["en".to_owned()]) {
         if let Some(bytes) = read_installed_catalog(&locale)
             && let Some(catalog) = Catalog::from_mo(locale.clone(), &bytes)
         {
